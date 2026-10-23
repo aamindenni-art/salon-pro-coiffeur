@@ -1,0 +1,19 @@
+{
+  "name": "Salon Pro — mon coiffeur",
+  "short_name": "Salon Pro",
+  "description": "Gestion de clientèle, rendez-vous, caisse et finances pour coiffeur. Fonctionne hors-ligne, données sur votre téléphone.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#131210",
+  "theme_color": "#b1702a",
+  "categories": ["business", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
