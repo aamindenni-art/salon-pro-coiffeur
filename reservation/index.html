@@ -144,6 +144,15 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
 .cta-note{text-align:center;color:var(--muted);font-size:12.5px;margin-top:10px}
 
 /* ---------- Mon travail ---------- */
+/* vidéo mise en avant (cadre premium, sans habillage Instagram) */
+.feature-video{position:relative;width:min(300px,76vw);margin:0 auto 14px;aspect-ratio:9/16;border-radius:24px;overflow:hidden;cursor:pointer;
+  border:2px solid transparent;
+  background:linear-gradient(var(--panel),var(--panel)) padding-box, linear-gradient(145deg,var(--gold-br),var(--gold-dp)) border-box;
+  box-shadow:0 18px 50px rgba(0,0,0,.6), 0 0 36px rgba(216,179,94,.16)}
+.feature-video video{width:100%;height:100%;object-fit:cover;display:block}
+.feature-video .play{position:absolute;inset:0;display:grid;place-items:center;pointer-events:none;background:radial-gradient(circle at center,transparent 55%,rgba(0,0,0,.25))}
+.feature-video .play svg{width:66px;height:66px;filter:drop-shadow(0 3px 10px rgba(0,0,0,.5))}
+.feature-video.on .play{display:none}
 .reels{margin-bottom:12px}
 .reels:empty{display:none}
 .instagram-media{margin:0 auto 12px !important;max-width:100% !important;min-width:0 !important}
@@ -230,6 +239,7 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="9" width="18" height="6" rx="1.5"/><path d="M6 9V6M9 9V6M12 9V6M15 9V6M18 9V6"/></svg>
     </div>
     <div class="panel gleam">
+      <div id="featVideo"></div>
       <div class="reels" id="reels"></div>
       <div class="gallery" id="gallery"></div>
       <a class="btn-ig" id="igBtn" target="_blank" rel="noopener">
@@ -293,10 +303,9 @@ const SALON = {
   address: "Birkhadem, Alger",
   whatsapp: "213563856484",      // numéro WhatsApp (sans + ni espaces). Vide = démo.
   instagram: "gt_barber_birkhadem",
-  reels: [
-    "https://www.instagram.com/reel/Da0baoLNt3w/"   // reel POV / immersion (le plus accrocheur)
-  ],
-  gallery: [],                   // photos/vidéos locales éventuelles : ["photos/1.jpg", ...]
+  video: "",                     // <-- TA VIDÉO (fichier) : "videos/travail.mp4" une fois envoyée. Vide = masquée.
+  reels: [],                     // (plus de carte Instagram)
+  gallery: [],                   // photos locales éventuelles : ["photos/1.jpg", ...]
   slotMinutes: 30, leadHours: 2, horizonDays: 21,
   hours: {
     0:{on:true, open:"09:00", close:"19:00"}, 1:{on:true, open:"09:00", close:"19:00"},
@@ -343,9 +352,14 @@ if(!SALON.whatsapp) $("#cfgWarn").classList.remove("hidden");
 
 // Mon travail
 (function(){
-  const gal=SALON.gallery||[], ig=SALON.instagram, reels=SALON.reels||[];
-  if(!gal.length && !ig && !reels.length) return;
+  const gal=SALON.gallery||[], ig=SALON.instagram, reels=SALON.reels||[], vid=SALON.video;
+  if(!vid && !gal.length && !reels.length) return;   // section visible seulement avec une vraie vidéo/photo
   $("#work").classList.remove("hidden");
+  if(vid){
+    $("#featVideo").innerHTML = `<div class="feature-video" id="fv"><video src="${vid}" muted loop playsinline autoplay preload="metadata"></video><div class="play"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="rgba(0,0,0,.4)"/><path d="M10 8.3v7.4l6-3.7z" fill="#fff"/></svg></div></div>`;
+    const fv=$("#fv"), v=fv.querySelector("video");
+    fv.onclick=()=>{ fv.classList.add("on"); v.muted=false; v.play(); if(v.requestFullscreen)v.requestFullscreen().catch(()=>{}); else if(v.webkitEnterFullscreen)v.webkitEnterFullscreen(); };
+  }
   if(reels.length){
     $("#reels").innerHTML = reels.map(u=>`<blockquote class="instagram-media" data-instgrm-permalink="${u}" data-instgrm-version="14"></blockquote>`).join("");
     if(!window.__ig){const s=document.createElement("script");s.async=true;s.src="https://www.instagram.com/embed.js";document.body.appendChild(s);window.__ig=true;}
