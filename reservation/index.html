@@ -79,6 +79,9 @@ h2{font-family:"Oswald";font-size:19px;margin:0 0 12px}
 .gallery::-webkit-scrollbar{display:none}
 .gallery:empty{display:none}
 .gallery img{width:118px;height:150px;flex:none;object-fit:cover;border-radius:13px;border:1px solid var(--border);background:var(--surface-3)}
+.reels{margin-bottom:8px}
+.reels:empty{display:none}
+.instagram-media{margin:0 auto 10px !important;max-width:100% !important;min-width:0 !important}
 .ig-hint{margin:0 0 12px;color:var(--muted);font-size:13.5px}
 .ig-hint:empty{display:none}
 .btn.ig{background:linear-gradient(135deg,#f58529,#dd2a7b 55%,#8134af);color:#fff}
@@ -105,6 +108,7 @@ h2{font-family:"Oswald";font-size:19px;margin:0 0 12px}
   <section id="showcase" class="card showcase hidden">
     <h2>✂️ Mon travail</h2>
     <div class="gallery" id="gallery"></div>
+    <div class="reels" id="reels"></div>
     <p class="ig-hint" id="igHint"></p>
     <a class="btn ig" id="igBtn" target="_blank" rel="noopener">
       <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1 .1 1.7.2 2.3.5.6.2 1.1.5 1.6 1 .5.5.8 1 1 1.6.2.6.4 1.2.5 2.3.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c-.1 1-.2 1.7-.5 2.3-.2.6-.5 1.1-1 1.6-.5.5-1 .8-1.6 1-.6.2-1.2.4-2.3.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1-.1-1.7-.2-2.3-.5-.6-.2-1.1-.5-1.6-1-.5-.5-.8-1-1-1.6-.2-.6-.4-1.2-.5-2.3C2 15 2 14.7 2 12s0-3 .1-4.1c.1-1 .2-1.7.5-2.3.2-.6.5-1.1 1-1.6.5-.5 1-.8 1.6-1 .6-.2 1.2-.4 2.3-.5C9 2 9.3 2 12 2Zm0 2c-2.7 0-3 0-4 .1-.8 0-1.2.2-1.5.3-.4.1-.6.3-.9.6-.3.3-.5.5-.6.9-.1.3-.3.7-.3 1.5-.1 1-.1 1.3-.1 4s0 3 .1 4c0 .8.2 1.2.3 1.5.1.4.3.6.6.9.3.3.5.5.9.6.3.1.7.3 1.5.3 1 .1 1.3.1 4 .1s3 0 4-.1c.8 0 1.2-.2 1.5-.3.4-.1.6-.3.9-.6.3-.3.5-.5.6-.9.1-.3.3-.7.3-1.5.1-1 .1-1.3.1-4s0-3-.1-4c0-.8-.2-1.2-.3-1.5-.1-.4-.3-.6-.6-.9-.3-.3-.5-.5-.9-.6-.3-.1-.7-.3-1.5-.3-1-.1-1.3-.1-4-.1Zm0 3.1a4.9 4.9 0 1 1 0 9.8 4.9 4.9 0 0 1 0-9.8Zm0 2a2.9 2.9 0 1 0 0 5.8 2.9 2.9 0 0 0 0-5.8Zm5.1-3.6a1.15 1.15 0 1 1 0 2.3 1.15 1.15 0 0 1 0-2.3Z"/></svg>
@@ -150,7 +154,10 @@ const SALON = {
   name: "Barber Birkhadem",      // nom affiché
   address: "Birkhadem, Alger · Réservez en ligne",
   instagram: "gt_barber_birkhadem",  // identifiant Instagram (sans @)
-  gallery: [],                   // photos de réalisations : ["photos/1.jpg", ...] (dans reservation/photos/)
+  gallery: [],                   // photos/vidéos locales : ["photos/1.jpg", ...] (dans reservation/photos/)
+  reels: [                       // reels Instagram à intégrer dans la page (liens)
+    "https://www.instagram.com/reel/DXcjBdRDUpn/"
+  ],
   whatsapp: "213563856484",      // <-- NUMÉRO WHATSAPP (sans + ni espaces). Vide = démo.
   slotMinutes: 30,               // intervalle entre créneaux
   leadHours: 2,                  // délai minimum avant un RDV (heures)
@@ -191,11 +198,17 @@ $("#logo").textContent = (SALON.name.trim()[0]||"S").toUpperCase();
 document.title = "Réserver — " + SALON.name;
 if(!SALON.whatsapp) $("#cfgWarn").classList.remove("hidden");
 
-// Section "Mon travail" (galerie photos + Instagram)
+// Section "Mon travail" (galerie + reels Instagram + lien)
 (function(){
-  const gal = SALON.gallery || []; const ig = SALON.instagram;
-  if(!gal.length && !ig) return;
+  const gal = SALON.gallery || []; const ig = SALON.instagram; const reels = SALON.reels || [];
+  if(!gal.length && !ig && !reels.length) return;
   $("#showcase").classList.remove("hidden");
+  // Reels Instagram intégrés
+  if(reels.length){
+    $("#reels").innerHTML = reels.map(u=>`<blockquote class="instagram-media" data-instgrm-permalink="${u}" data-instgrm-version="14"></blockquote>`).join("");
+    if(!window.__igEmbed){ const s=document.createElement("script"); s.async=true; s.src="https://www.instagram.com/embed.js"; document.body.appendChild(s); window.__igEmbed=true; }
+    else if(window.instgrm) window.instgrm.Embeds.process();
+  }
   $("#gallery").innerHTML = gal.map(src=>{
     const isVideo = /\.(mp4|webm|mov|m4v)$/i.test(src);
     return isVideo
