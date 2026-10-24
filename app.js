@@ -55,6 +55,13 @@ const clamp = (n, a, b) => Math.max(a, Math.min(b, n));
 /* ======================= Store (données locales) ======================= */
 const KEY = "salonpro";
 const SCHEMA = 2;
+// Anciens textes par défaut : si l'utilisateur les a gardés tels quels, on les met à jour.
+const OLD_REMINDER_DEFAULTS = [
+  "Bonjour {client}, petit rappel : vous avez rendez-vous {date} à {heure} chez {salon}. À bientôt !",
+];
+const OLD_RECEIPT_DEFAULTS = [
+  "Merci de votre visite — à bientôt !",
+];
 
 const BASE = () => ({
   version: SCHEMA,
@@ -76,12 +83,6 @@ function loadDB() {
   } catch (e) { console.warn("load", e); }
   return BASE();
 }
-const OLD_REMINDER_DEFAULTS = [
-  "Bonjour {client}, petit rappel : vous avez rendez-vous {date} à {heure} chez {salon}. À bientôt !",
-];
-const OLD_RECEIPT_DEFAULTS = [
-  "Merci de votre visite — à bientôt !",
-];
 function migrate(d) {
   const base = BASE();
   d = Object.assign(base, d);
@@ -190,7 +191,7 @@ function setTheme(m) {
   const root = document.documentElement;
   if (m === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", m);
   try { m === "system" ? localStorage.removeItem("salonpro_theme") : localStorage.setItem("salonpro_theme", m); } catch (e) {}
-  const meta = $('meta[name="theme-color"]'); if (meta) meta.content = isDark() ? "#1c1b18" : "#b1702a";
+  const meta = $('meta[name="theme-color"]'); if (meta) meta.content = isDark() ? "#1b1a16" : "#9c7619";
   renderChrome();
 }
 (function () { const m = themeMode(); if (m !== "system") document.documentElement.setAttribute("data-theme", m); })();

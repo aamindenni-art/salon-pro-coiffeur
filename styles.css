@@ -3,15 +3,16 @@
    Identité "barbier" : laiton chaud sur encre profonde. Mobile-first.
    ===================================================================== */
 :root {
-  /* Couleurs (thème clair) */
-  --bg: #f4f2ef; --bg-2: #ebe8e2;
-  --surface: #ffffff; --surface-2: #faf8f5; --surface-3: #f1ede7;
-  --fg: #1a1916; --muted: #6b6760; --faint: #9c968c;
-  --border: #e7e3dc; --border-strong: #d7d1c7;
-  --accent: #b1702a; --accent-ink: #8a560f; --accent-soft: rgba(177,112,42,.12);
+  /* Couleurs (thème clair) — noir & or */
+  --bg: #f4f1ea; --bg-2: #eae5da;
+  --surface: #ffffff; --surface-2: #faf8f2; --surface-3: #f1ede3;
+  --fg: #19170f; --muted: #6a655a; --faint: #9a9485;
+  --border: #e9e3d6; --border-strong: #dad3c3;
+  --accent: #9c7619; --accent-ink: #7a5c10; --accent-soft: rgba(156,118,25,.13);
   --on-accent: #ffffff;
+  --logo-grad: linear-gradient(145deg, #c9a24c, #8c6a18);
   --good: #2f7d4f; --good-soft: rgba(47,125,79,.13);
-  --warn: #b7821a; --warn-soft: rgba(183,130,26,.14);
+  --warn: #9c7619; --warn-soft: rgba(156,118,25,.14);
   --bad: #c0392b; --bad-soft: rgba(192,57,43,.12);
   --info: #2f6f9e; --info-soft: rgba(47,111,158,.13);
   /* Ombres */
@@ -31,13 +32,14 @@
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
-  --bg: #121110; --bg-2: #0d0c0b;
-  --surface: #1c1b18; --surface-2: #232019; --surface-3: #2a2720;
-  --fg: #f1ece4; --muted: #a39d92; --faint: #797267;
-  --border: #322e26; --border-strong: #423d33;
-  --accent: #d7985b; --accent-ink: #ecb57f; --accent-soft: rgba(215,152,91,.15);
+  --bg: #121110; --bg-2: #0b0a08;
+  --surface: #1b1a16; --surface-2: #211f1a; --surface-3: #2a2721;
+  --fg: #f2ece0; --muted: #a8a294; --faint: #7a746a;
+  --border: #322f28; --border-strong: #443f35;
+  --accent: #d9b45f; --accent-ink: #ecc87e; --accent-soft: rgba(217,180,95,.15);
+  --on-accent: #1a1810;
   --good: #5bbd84; --good-soft: rgba(91,189,132,.16);
-  --warn: #e0ad4e; --warn-soft: rgba(224,173,78,.16);
+  --warn: #e0a23e; --warn-soft: rgba(224,162,62,.16);
   --bad: #e07a6b; --bad-soft: rgba(224,122,107,.16);
   --info: #6aa6d4; --info-soft: rgba(106,166,212,.16);
   --sh-1: 0 1px 2px rgba(0,0,0,.4);
@@ -47,13 +49,14 @@
   color-scheme: dark;
 } }
 :root[data-theme="dark"] {
-  --bg: #121110; --bg-2: #0d0c0b;
-  --surface: #1c1b18; --surface-2: #232019; --surface-3: #2a2720;
-  --fg: #f1ece4; --muted: #a39d92; --faint: #797267;
-  --border: #322e26; --border-strong: #423d33;
-  --accent: #d7985b; --accent-ink: #ecb57f; --accent-soft: rgba(215,152,91,.15);
+  --bg: #121110; --bg-2: #0b0a08;
+  --surface: #1b1a16; --surface-2: #211f1a; --surface-3: #2a2721;
+  --fg: #f2ece0; --muted: #a8a294; --faint: #7a746a;
+  --border: #322f28; --border-strong: #443f35;
+  --accent: #d9b45f; --accent-ink: #ecc87e; --accent-soft: rgba(217,180,95,.15);
+  --on-accent: #1a1810;
   --good: #5bbd84; --good-soft: rgba(91,189,132,.16);
-  --warn: #e0ad4e; --warn-soft: rgba(224,173,78,.16);
+  --warn: #e0a23e; --warn-soft: rgba(224,162,62,.16);
   --bad: #e07a6b; --bad-soft: rgba(224,122,107,.16);
   --info: #6aa6d4; --info-soft: rgba(106,166,212,.16);
   --sh-1: 0 1px 2px rgba(0,0,0,.4);
@@ -96,7 +99,7 @@ a { color: var(--accent-ink); }
 }
 .topbar .logo {
   width: 38px; height: 38px; border-radius: 11px; flex: none; display: grid; place-items: center;
-  background: linear-gradient(145deg, var(--accent), var(--accent-ink));
+  background: var(--logo-grad);
   color: #fff; font-family: var(--ff-display); font-weight: 700; font-size: 19px; box-shadow: var(--sh-1);
 }
 .topbar .ttl { flex: 1; min-width: 0; }
@@ -323,7 +326,7 @@ a { color: var(--accent-ink); }
 /* ---------- Onboarding ---------- */
 .onb { position: fixed; inset: 0; z-index: 80; background: radial-gradient(1200px 520px at 100% -10%, var(--accent-soft), transparent), var(--bg); display: flex; flex-direction: column; padding: calc(var(--sat) + 8px) max(20px, var(--sal)) calc(var(--sab) + 16px) max(20px, var(--sar)); overflow-y: auto; }
 .onb-inner { max-width: 440px; width: 100%; margin: auto; }
-.onb .logo-xl { width: 76px; height: 76px; border-radius: 20px; display: grid; place-items: center; margin: 0 auto 18px; background: linear-gradient(145deg, var(--accent), var(--accent-ink)); color: #fff; font-family: var(--ff-display); font-weight: 700; font-size: 38px; box-shadow: var(--sh-3); }
+.onb .logo-xl { width: 76px; height: 76px; border-radius: 20px; display: grid; place-items: center; margin: 0 auto 18px; background: var(--logo-grad); color: #fff; font-family: var(--ff-display); font-weight: 700; font-size: 38px; box-shadow: var(--sh-3); }
 .onb h1 { font-family: var(--ff-display); font-size: 30px; text-align: center; }
 .onb .lead { text-align: center; color: var(--muted); margin: 6px 0 24px; font-size: 15px; }
 .onb .choice { width: 100%; text-align: left; padding: 16px; border-radius: 16px; border: 1px solid var(--border-strong); background: var(--surface); box-shadow: var(--sh-2); margin-bottom: 12px; display: flex; gap: 13px; align-items: center; transition: transform .08s, border-color .15s; }
@@ -339,16 +342,16 @@ a { color: var(--accent-ink); }
 .toast { position: fixed; left: 50%; bottom: calc(var(--nav-h) + var(--sab) + 16px); transform: translateX(-50%); z-index: 90; background: var(--fg); color: var(--bg); padding: 12px 18px; border-radius: 13px; font-weight: 600; font-size: 14px; box-shadow: var(--sh-3); max-width: 90vw; text-align: center; display: flex; align-items: center; gap: 9px; animation: toast-in .25s; }
 .toast svg { width: 18px; height: 18px; }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 12px); } }
-.update-banner { position: fixed; left: 12px; right: 12px; top: calc(var(--sat) + 10px); z-index: 85; background: var(--accent-ink); color: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: var(--sh-3); display: flex; align-items: center; gap: 12px; animation: toast-in .3s; }
+.update-banner { position: fixed; left: 12px; right: 12px; top: calc(var(--sat) + 10px); z-index: 85; background: var(--accent); color: var(--on-accent); border-radius: 14px; padding: 12px 14px; box-shadow: var(--sh-3); display: flex; align-items: center; gap: 12px; animation: toast-in .3s; }
 .update-banner .grow { flex: 1; font-size: 13.5px; font-weight: 600; }
-.update-banner button { background: rgba(255,255,255,.18); color: #fff; padding: 8px 12px; border-radius: 9px; font-weight: 700; font-size: 13px; }
+.update-banner button { background: rgba(0,0,0,.16); color: var(--on-accent); padding: 8px 12px; border-radius: 9px; font-weight: 700; font-size: 13px; }
 
 /* ---------- Misc ---------- */
 .chart-wrap { position: relative; width: 100%; }
 .insight { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 13px; margin-bottom: 10px; }
 .insight .ic { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; flex: none; }
 .insight b { font-size: 14px; } .insight span { font-size: 12.5px; color: var(--muted); display: block; }
-.fab { position: fixed; right: max(16px, var(--sar)); bottom: calc(var(--nav-h) + var(--sab) + 16px); z-index: 36; width: 56px; height: 56px; border-radius: 18px; background: var(--accent); color: #fff; display: grid; place-items: center; box-shadow: var(--sh-3); transition: transform .1s; }
+.fab { position: fixed; right: max(16px, var(--sar)); bottom: calc(var(--nav-h) + var(--sab) + 16px); z-index: 36; width: 56px; height: 56px; border-radius: 18px; background: var(--accent); color: var(--on-accent); display: grid; place-items: center; box-shadow: var(--sh-3); transition: transform .1s; }
 .fab:active { transform: scale(.92); }
 .fab svg { width: 26px; height: 26px; }
 .chips { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: none; }
