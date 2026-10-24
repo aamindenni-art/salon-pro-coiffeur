@@ -196,11 +196,21 @@ if(!SALON.whatsapp) $("#cfgWarn").classList.remove("hidden");
   const gal = SALON.gallery || []; const ig = SALON.instagram;
   if(!gal.length && !ig) return;
   $("#showcase").classList.remove("hidden");
-  $("#gallery").innerHTML = gal.map(src=>`<img src="${src}" alt="Réalisation ${SALON.name}" loading="lazy">`).join("");
+  $("#gallery").innerHTML = gal.map(src=>{
+    const isVideo = /\.(mp4|webm|mov|m4v)$/i.test(src);
+    return isVideo
+      ? `<video src="${src}" muted loop playsinline autoplay preload="metadata" aria-label="Réalisation ${SALON.name}"></video>`
+      : `<img src="${src}" alt="Réalisation ${SALON.name}" loading="lazy">`;
+  }).join("");
+  // tap sur une vidéo = plein écran
+  $("#gallery").querySelectorAll("video").forEach(v=>v.addEventListener("click",()=>{
+    if(v.requestFullscreen) v.requestFullscreen().catch(()=>{});
+    else if(v.webkitEnterFullscreen) v.webkitEnterFullscreen();
+  }));
   if(ig){
     $("#igBtn").href = "https://instagram.com/" + ig;
     $("#igLabel").textContent = gal.length ? "Voir plus sur Instagram" : "Voir mes réalisations sur Instagram";
-    $("#igHint").textContent = gal.length ? "" : "Découvrez mes coupes sur Instagram, puis réservez ci-dessous 👇";
+    $("#igHint").textContent = gal.length ? "" : "Toutes mes vidéos (coupes, dégradés, barbe) sont sur Instagram 👇 puis réservez juste en dessous.";
   } else { $("#igBtn").classList.add("hidden"); }
 })();
 
