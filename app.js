@@ -60,7 +60,7 @@ const BASE = () => ({
   version: SCHEMA,
   salon: {
     name: "Mon salon", currency: "DA", phone: "", address: "",
-    reminderTemplate: "Bonjour {client}, petit rappel : vous avez rendez-vous {date} à {heure} chez {salon}. À bientôt !",
+    reminderTemplate: "Bonjour {client}, nous vous rappelons votre rendez-vous {date} à {heure} chez {salon}. En cas d'empêchement, merci de nous prévenir.",
     receiptFooter: "Merci de votre visite — à bientôt !",
     defaultDuration: 30, onboarded: false,
   },
@@ -76,10 +76,15 @@ function loadDB() {
   } catch (e) { console.warn("load", e); }
   return BASE();
 }
+const OLD_REMINDER_DEFAULTS = [
+  "Bonjour {client}, petit rappel : vous avez rendez-vous {date} à {heure} chez {salon}. À bientôt !",
+];
 function migrate(d) {
   const base = BASE();
   d = Object.assign(base, d);
   d.salon = Object.assign(base.salon, d.salon || {});
+  // Met à jour le message de rappel si l'utilisateur a gardé un ancien modèle par défaut.
+  if (OLD_REMINDER_DEFAULTS.includes(d.salon.reminderTemplate)) d.salon.reminderTemplate = base.salon.reminderTemplate;
   ["services", "clients", "appointments", "sales", "expenses", "reminders"].forEach((k) => { if (!Array.isArray(d[k])) d[k] = []; });
   d.version = SCHEMA;
   return d;
