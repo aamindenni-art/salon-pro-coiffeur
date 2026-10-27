@@ -71,7 +71,7 @@ const BASE = () => ({
     name: "Mon salon", currency: "DA", phone: "", address: "",
     reminderTemplate: "Bonjour {client}, nous vous rappelons votre rendez-vous {date} à {heure} chez {salon}. En cas d'empêchement, merci de nous prévenir.",
     receiptFooter: "Merci ! N'hésitez pas à nous recommander à vos proches.",
-    defaultDuration: 30, onboarded: false, pin: "",
+    defaultDuration: 30, onboarded: false, pin: "", pinQuestion: "", pinAnswer: "",
   },
   services: [], clients: [], appointments: [], sales: [], expenses: [], reminders: [],
 });
@@ -889,9 +889,11 @@ function showLock() {
     <div class="keypad">${keys.map((k) => k === "" ? "<span></span>" : k === "back"
       ? `<button class="kb back" data-k="back" aria-label="Effacer">${svg("backspace")}</button>`
       : `<button class="kb" data-k="${k}">${k}</button>`).join("")}</div>
+    <button class="lock-forgot" id="forgot">Code oublié ?</button>
   </div></div>`;
   pinEntry = "";
   $$("#lock-root .kb").forEach((b) => b.onclick = () => b.dataset.k === "back" ? pinBack() : pinAdd(b.dataset.k));
+  $("#forgot").onclick = showRecovery;
 }
 function pinDots() { const d = $("#pdots"); if (d) [...d.children].forEach((x, i) => x.classList.toggle("on", i < pinEntry.length)); }
 function pinAdd(d) { if (pinEntry.length >= 4) return; pinEntry += d; haptic(6); pinDots(); if (pinEntry.length === 4) setTimeout(pinCheck, 130); }
@@ -900,24 +902,59 @@ function pinCheck() {
   if (pinEntry === DB.salon.pin) { appUnlocked = true; $("#lock-root").innerHTML = ""; haptic(12); }
   else { const d = $("#pdots"); if (d) d.classList.add("err"); haptic(60); setTimeout(() => { pinEntry = ""; pinDots(); const d2 = $("#pdots"); if (d2) d2.classList.remove("err"); }, 480); }
 }
+const normAns = (s) => String(s || "").trim().toLowerCase().replace(/\s+/g, " ");
 function setPinSheet(onDone) {
   openSheet("Code de verrouillage", `
     <p style="margin:0 0 12px;color:var(--muted);font-size:13.5px">Choisissez un code à 4 chiffres. Il sera demandé à chaque ouverture de l'application.</p>
     <div class="row2">
       <div class="field"><label>Nouveau code</label><input id="pin1" inputmode="numeric" maxlength="4" type="password" placeholder="••••"></div>
       <div class="field"><label>Confirmer</label><input id="pin2" inputmode="numeric" maxlength="4" type="password" placeholder="••••"></div>
-    </div>`, {
+    </div>
+    <div class="section-lbl" style="margin-top:6px">Récupération</div>
+    <div class="field"><label>Question secrète</label>
+      <input id="pinq" list="pinqs" value="${esc(DB.salon.pinQuestion || "")}" placeholder="Ex : Ville de naissance ?">
+      <datalist id="pinqs"><option value="Ville de naissance ?"><option value="Nom de votre premier animal ?"><option value="Nom de jeune fille de votre mère ?"><option value="Prénom de votre meilleur(e) ami(e) ?"><option value="Nom de votre quartier d'enfance ?"></datalist></div>
+    <div class="field"><label>Réponse</label><input id="pina" autocomplete="off" placeholder="Votre réponse">
+      <div class="hint">Si vous oubliez le code, cette réponse permettra d'en définir un nouveau.</div></div>`, {
     footer: `<button class="btn ghost" data-cancel>Annuler</button><button class="btn primary" data-save>${svg("check")}Enregistrer</button>`,
     onMount(rt) {
       $("[data-cancel]", rt).onclick = () => { closeSheet(); if (onDone) onDone(false); };
       $("[data-save]", rt).onclick = () => {
         const a = $("#pin1").value.trim(), b = $("#pin2").value.trim();
+        const q = $("#pinq").value.trim(), ans = $("#pina").value.trim();
         if (!/^\d{4}$/.test(a)) { toast("Entrez 4 chiffres", "bad"); return; }
         if (a !== b) { toast("Les codes ne correspondent pas", "bad"); return; }
-        DB.salon.pin = a; appUnlocked = true; save(); closeSheet(); render(); toast("Verrouillage activé ✓"); if (onDone) onDone(true);
+        if (!q || !ans) { toast("Ajoutez une question et sa réponse", "bad"); return; }
+        DB.salon.pin = a; DB.salon.pinQuestion = q; DB.salon.pinAnswer = normAns(ans);
+        appUnlocked = true; save(); closeSheet(); render(); toast("Verrouillage activé ✓"); if (onDone) onDone(true);
       };
     },
   });
+}
+function showRecovery() {
+  const root = $("#lock-root");
+  const logo = initials(DB.salon.name).slice(0, 1) || "S";
+  if (!DB.salon.pinQuestion) {
+    root.innerHTML = `<div class="lock"><div class="lock-inner">
+      <div class="lock-logo">${logo}</div><h2>Code oublié</h2>
+      <p style="text-transform:none;letter-spacing:0;font-family:var(--ff);margin:12px 0 22px;line-height:1.5">Aucune question de récupération n'a été configurée pour ce code. Vous pouvez restaurer une sauvegarde depuis un autre appareil.</p>
+      <button class="btn block" id="recBack">Retour</button></div></div>`;
+    $("#recBack").onclick = showLock; return;
+  }
+  root.innerHTML = `<div class="lock"><div class="lock-inner">
+    <div class="lock-logo">${logo}</div><h2>Code oublié</h2>
+    <p style="text-transform:none;letter-spacing:0;font-family:var(--ff);margin:12px 0 16px;font-size:16px;color:var(--fg)">${esc(DB.salon.pinQuestion)}</p>
+    <input id="recAns" autocomplete="off" placeholder="Votre réponse" style="width:100%;padding:14px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface-2);color:var(--fg);font-size:16px;text-align:center">
+    <button class="btn primary block" id="recGo" style="margin-top:12px">${svg("check")}Valider</button>
+    <button class="btn ghost block" id="recBack" style="margin-top:8px">Retour</button></div></div>`;
+  $("#recBack").onclick = showLock;
+  $("#recAns").onkeydown = (e) => { if (e.key === "Enter") $("#recGo").click(); };
+  $("#recGo").onclick = () => {
+    if (normAns($("#recAns").value) && normAns($("#recAns").value) === DB.salon.pinAnswer) {
+      appUnlocked = true; root.innerHTML = ""; haptic(12); go("settings");
+      setTimeout(() => { toast("Récupéré — choisissez un nouveau code"); setPinSheet(() => render()); }, 320);
+    } else { toast("Réponse incorrecte", "bad"); haptic(50); }
+  };
 }
 
 function boot() {

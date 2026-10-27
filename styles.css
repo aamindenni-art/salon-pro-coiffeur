@@ -342,6 +342,8 @@ a{color:var(--accent-ink)}
 .kb:active{transform:scale(.92);background:var(--surface-3)}
 .kb.back{background:transparent;border:none;box-shadow:none;color:var(--muted);display:grid;place-items:center}
 .kb.back svg{width:26px;height:26px}
+.lock-forgot{margin-top:28px;background:none;border:none;color:var(--muted);font-family:var(--ff-display);letter-spacing:.6px;font-size:13px;text-decoration:underline;text-underline-offset:3px;padding:8px}
+.lock-forgot:active{color:var(--accent-ink)}
 
 /* ---------- Toast & banner ---------- */
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--sab) + 16px);transform:translateX(-50%);z-index:90;
