@@ -568,23 +568,58 @@ function historySheet() {
 
 /* ======================= Vue : Caisse (POS) ======================= */
 let cart = [], cartClient = "", cartMode = "Espèces";
-let posPreset = null;
+let cartDiscount = 0, cartDiscountType = "amount", cartTip = 0, cartPaid = 0;
+let posPreset = null, posQuery = "";
 function viewPos(c) {
   if (posPreset) {
     cartClient = posPreset.clientId ? String(posPreset.clientId) : "";
     if (posPreset.serviceIds.length) { cart = []; posPreset.serviceIds.forEach((sid) => { const s = serviceById(sid); if (s) addToCart(s); }); }
     posPreset = null;
   }
-  const cats = [...new Set(DB.services.map((s) => s.category || "Autres"))];
   c.innerHTML = pageHead("Caisse", "Encaisser une prestation", `<button class="iconbtn sm" id="mng" title="Gérer les services">${svg("scissors")}</button>`) +
-    (DB.services.length ? cats.map((cat) => `<div class="section-lbl">${esc(cat)}</div><div class="svc-grid">${DB.services.filter((s) => (s.category || "Autres") === cat).map((s) => `<button class="svc-tile" data-add="${s.id}"><div class="n">${esc(s.name)}</div><div class="p">${money(s.price)}</div><div class="d">${s.duration} min</div></button>`).join("")}</div>`).join("")
+    (DB.services.length
+      ? `<div class="searchbar">${svg("search")}<input id="posq" placeholder="Rechercher une prestation…" value="${esc(posQuery)}" autocomplete="off"></div>
+         <div id="svcWrap">${posGridHTML()}</div>
+         <button class="btn block" id="freeItem" style="margin-top:14px">${svg("plus")}Article libre (prix au choix)</button>`
       : `<div class="card"><div class="card-b">${emptyState("scissors", "Aucune prestation", "Ajoutez vos services et tarifs pour encaisser.")}<button class="btn primary block" id="addsvc">${svg("plus")}Ajouter une prestation</button></div></div>`);
   $("#mng").onclick = () => go("services");
   const as = $("#addsvc"); if (as) as.onclick = () => serviceForm();
-  $$("[data-add]", c).forEach((el) => el.onclick = () => { addToCart(serviceById(el.dataset.add)); haptic(); renderCartBar(); });
+  const fi = $("#freeItem"); if (fi) fi.onclick = freeItemSheet;
+  const pq = $("#posq");
+  if (pq) pq.oninput = (e) => { posQuery = e.target.value; const w = $("#svcWrap"); if (w) { w.innerHTML = posGridHTML(); bindAdds(w); } };
+  bindAdds(c);
   renderCartBar();
 }
+function posGridHTML() {
+  const q = posQuery.trim().toLowerCase();
+  const list = DB.services.filter((s) => !q || (s.name || "").toLowerCase().includes(q) || (s.category || "").toLowerCase().includes(q));
+  if (!list.length) return `<div class="card"><div class="card-b">${emptyState("search", "Aucune prestation trouvée", "Essayez un autre mot, ou utilisez « Article libre ».")}</div></div>`;
+  const cats = [...new Set(list.map((s) => s.category || "Autres"))];
+  return cats.map((cat) => `<div class="section-lbl">${esc(cat)}</div><div class="svc-grid">${list.filter((s) => (s.category || "Autres") === cat).map((s) => `<button class="svc-tile" data-add="${s.id}"><div class="n">${esc(s.name)}</div><div class="p">${money(s.price)}</div><div class="d">${s.duration} min</div></button>`).join("")}</div>`).join("");
+}
+function bindAdds(scope) {
+  $$("[data-add]", scope).forEach((el) => el.onclick = () => { addToCart(serviceById(el.dataset.add)); haptic(); renderCartBar(); });
+}
+function freeItemSheet() {
+  openSheet("Article libre", `
+    <div class="field"><label>Désignation</label><input id="fi_name" placeholder="Ex : Coupe enfant, Soin…" autocomplete="off"></div>
+    <div class="field"><label>Prix (${cur()})</label><input id="fi_price" inputmode="numeric" placeholder="0" autocomplete="off"></div>`, {
+    footer: `<button class="btn primary block" data-add>${svg("plus")}Ajouter au panier</button>`,
+    onMount(root) {
+      setTimeout(() => { const n = $("#fi_name", root); if (n) n.focus(); }, 60);
+      $("[data-add]", root).onclick = () => {
+        const name = $("#fi_name", root).value.trim() || "Article";
+        const price = Math.max(0, Math.round(Number($("#fi_price", root).value) || 0));
+        cart.push({ serviceId: null, name, price, qty: 1 });
+        closeSheet(); haptic(); renderCartBar(); toast("Ajouté au panier ✓");
+      };
+    },
+  });
+}
 function addToCart(s) { if (!s) return; const ex = cart.find((l) => l.serviceId === s.id); if (ex) ex.qty++; else cart.push({ serviceId: s.id, name: s.name, price: s.price, qty: 1 }); }
+function cartSubtotal() { return cart.reduce((s, l) => s + l.price * l.qty, 0); }
+function discountValue(sub) { const d = cartDiscountType === "percent" ? sub * (Number(cartDiscount) || 0) / 100 : (Number(cartDiscount) || 0); return Math.min(Math.max(0, Math.round(d)), sub); }
+function cartTotal() { const sub = cartSubtotal(); return Math.max(0, sub - discountValue(sub) + Math.max(0, Number(cartTip) || 0)); }
 function renderCartBar() {
   let bar = $("#cartbar");
   const total = cart.reduce((s, l) => s + l.price * l.qty, 0);
@@ -596,26 +631,67 @@ function renderCartBar() {
 }
 function checkoutSheet() {
   if (!cart.length) return;
-  const total = () => cart.reduce((s, l) => s + l.price * l.qty, 0);
-  const clientOpts = DB.clients.map((c) => `<option value="${c.id}" ${cartClient === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
+  const clientOpts = DB.clients.slice().sort((a, b) => a.name.localeCompare(b.name)).map((c) => `<option value="${c.id}" ${cartClient === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
   openSheet("Encaissement", `
     <div class="field"><label>Client</label><select id="c_client"><option value="">Client de passage</option>${clientOpts}</select></div>
     <div id="c_lines"></div>
-    <div class="field" style="margin-top:12px"><label>Mode de paiement</label><div class="seg" id="c_mode">${["Espèces", "Carte", "Virement", "Crédit"].map((m) => `<button data-m="${m}" class="${cartMode === m ? "active" : ""}">${m}</button>`).join("")}</div></div>`, {
+    <div class="co-extra">
+      <div class="co-row"><label>Remise</label>
+        <div class="co-disc">
+          <div class="seg sm" id="c_dtype"><button data-dt="amount" class="${cartDiscountType === "amount" ? "active" : ""}">${cur()}</button><button data-dt="percent" class="${cartDiscountType === "percent" ? "active" : ""}">%</button></div>
+          <input id="c_disc" inputmode="numeric" placeholder="0" value="${cartDiscount || ""}" autocomplete="off">
+        </div>
+      </div>
+      <div class="co-row"><label>Pourboire</label><input id="c_tip" inputmode="numeric" placeholder="0" value="${cartTip || ""}" autocomplete="off"></div>
+    </div>
+    <div class="co-tot" id="c_totals"></div>
+    <div class="field" style="margin-top:14px"><label>Mode de paiement</label><div class="seg" id="c_mode">${["Espèces", "Carte", "Virement", "Crédit"].map((m) => `<button data-m="${m}" class="${cartMode === m ? "active" : ""}">${m}</button>`).join("")}</div></div>
+    <div id="c_cash" class="co-cash"></div>`, {
     footer: `<button class="btn primary block" data-pay></button>`,
     onMount(root) {
       const drawLines = () => {
-        $("#c_lines", root).innerHTML = cart.map((l, i) => `<div class="ticket-line"><div class="grow"><b style="font-weight:600">${esc(l.name)}</b><span class="sub">${money(l.price)}</span></div><div class="qty"><button data-dec="${i}">−</button><span>${l.qty}</span><button data-inc="${i}">+</button></div><b class="display num" style="min-width:70px;text-align:right">${money(l.price * l.qty)}</b></div>`).join("") + `<div class="receipt tot" style="background:none;border:none;padding:10px 0 0;border-top:1px dashed var(--border-strong);margin-top:6px"><b>TOTAL</b><b class="display" style="font-size:24px;color:var(--accent-ink)">${money(total())}</b></div>`;
-        $("[data-pay]", root).innerHTML = svg("check") + "Valider " + money(total());
-        $$("[data-inc]", root).forEach((b) => b.onclick = () => { cart[b.dataset.inc].qty++; drawLines(); });
-        $$("[data-dec]", root).forEach((b) => b.onclick = () => { const i = b.dataset.dec; if (cart[i].qty > 1) cart[i].qty--; else cart.splice(i, 1); if (!cart.length) { closeSheet(); renderCartBar(); return; } drawLines(); });
+        $("#c_lines", root).innerHTML = cart.map((l, i) => `<div class="ticket-line"><div class="grow"><b style="font-weight:600">${esc(l.name)}</b><span class="sub">${money(l.price)}${l.serviceId === null ? " · libre" : ""}</span></div><div class="qty"><button data-dec="${i}">−</button><span>${l.qty}</span><button data-inc="${i}">+</button></div><b class="display num" style="min-width:66px;text-align:right">${money(l.price * l.qty)}</b></div>`).join("");
+        $$("[data-inc]", root).forEach((b) => b.onclick = () => { cart[b.dataset.inc].qty++; drawLines(); recompute(); });
+        $$("[data-dec]", root).forEach((b) => b.onclick = () => { const i = b.dataset.dec; if (cart[i].qty > 1) cart[i].qty--; else cart.splice(i, 1); if (!cart.length) { closeSheet(); renderCartBar(); return; } drawLines(); recompute(); });
       };
-      drawLines();
+      const updateChange = () => {
+        const el = $("#c_change", root); if (!el) return;
+        const paid = Number(cartPaid) || 0, change = paid - cartTotal();
+        el.innerHTML = paid > 0 ? `<div class="tl grand ${change < 0 ? "neg" : "chg"}"><b>${change >= 0 ? "À rendre" : "Manque"}</b><b class="display">${money(Math.abs(change))}</b></div>` : "";
+      };
+      const buildCash = () => {
+        const wrap = $("#c_cash", root);
+        if (cartMode !== "Espèces") { wrap.innerHTML = ""; return; }
+        const tot = cartTotal();
+        const chips = [...new Set([tot, Math.ceil(tot / 100) * 100, Math.ceil(tot / 500) * 500, Math.ceil(tot / 1000) * 1000])].filter((v) => v > 0).slice(0, 4);
+        wrap.innerHTML = `<div class="field" style="margin-top:12px"><label>Montant reçu</label><input id="c_paid" inputmode="numeric" placeholder="0" value="${cartPaid || ""}" autocomplete="off"></div>
+          <div class="cash-chips">${chips.map((v) => `<button data-cash="${v}">${money(v)}</button>`).join("")}</div>
+          <div id="c_change"></div>`;
+        const pi = $("#c_paid", root); if (pi) pi.oninput = (e) => { cartPaid = Number(e.target.value) || 0; updateChange(); };
+        $$("[data-cash]", wrap).forEach((b) => b.onclick = () => { cartPaid = Number(b.dataset.cash) || 0; const p = $("#c_paid", root); if (p) p.value = cartPaid; updateChange(); });
+        updateChange();
+      };
+      const recompute = () => {
+        const sub = cartSubtotal(), disc = discountValue(sub), tip = Math.max(0, Number(cartTip) || 0), tot = Math.max(0, sub - disc + tip);
+        $("#c_totals", root).innerHTML =
+          `<div class="tl"><span>Sous-total</span><span class="num">${money(sub)}</span></div>` +
+          (disc > 0 ? `<div class="tl minus"><span>Remise${cartDiscountType === "percent" ? " " + (Number(cartDiscount) || 0) + "%" : ""}</span><span class="num">− ${money(disc)}</span></div>` : "") +
+          (tip > 0 ? `<div class="tl plus"><span>Pourboire</span><span class="num">+ ${money(tip)}</span></div>` : "") +
+          `<div class="tl grand"><b>TOTAL</b><b class="display">${money(tot)}</b></div>`;
+        $("[data-pay]", root).innerHTML = svg("check") + "Encaisser " + money(tot);
+        buildCash();
+      };
+      drawLines(); recompute();
       $("#c_client", root).onchange = (e) => cartClient = e.target.value;
-      $$("#c_mode [data-m]", root).forEach((b) => b.onclick = () => { cartMode = b.dataset.m; $$("#c_mode [data-m]", root).forEach((x) => x.classList.toggle("active", x === b)); });
+      $("#c_disc", root).oninput = (e) => { cartDiscount = Number(e.target.value) || 0; recompute(); };
+      $$("#c_dtype [data-dt]", root).forEach((b) => b.onclick = () => { cartDiscountType = b.dataset.dt; $$("#c_dtype [data-dt]", root).forEach((x) => x.classList.toggle("active", x === b)); recompute(); });
+      $("#c_tip", root).oninput = (e) => { cartTip = Number(e.target.value) || 0; recompute(); };
+      $$("#c_mode [data-m]", root).forEach((b) => b.onclick = () => { cartMode = b.dataset.m; $$("#c_mode [data-m]", root).forEach((x) => x.classList.toggle("active", x === b)); recompute(); });
       $("[data-pay]", root).onclick = () => {
-        const sale = { id: uid(), clientId: cartClient || null, date: today(), items: cart.map((l) => ({ ...l })), total: total(), mode: cartMode };
-        DB.sales.push(sale); save(); cart = []; cartClient = ""; cartMode = "Espèces";
+        const sub = cartSubtotal(), disc = discountValue(sub), tip = Math.max(0, Number(cartTip) || 0), tot = Math.max(0, sub - disc + tip);
+        const sale = { id: uid(), clientId: cartClient || null, date: today(), items: cart.map((l) => ({ ...l })), subtotal: sub, discount: disc, tip, total: tot, mode: cartMode };
+        DB.sales.push(sale); save();
+        cart = []; cartClient = ""; cartMode = "Espèces"; cartDiscount = 0; cartDiscountType = "amount"; cartTip = 0; cartPaid = 0;
         closeSheet(); render(); haptic(20); receiptSheet(sale); toast("Vente encaissée ✓");
       };
     },
@@ -624,7 +700,13 @@ function checkoutSheet() {
 function receiptText(sale) {
   const L = [DB.salon.name, DB.salon.address, "", `${fmtDFull(sale.date)}`, `Client : ${clientName(sale.clientId)}`, "—"];
   sale.items.forEach((it) => L.push(`${it.name}${it.qty > 1 ? " x" + it.qty : ""} : ${money(it.price * it.qty)}`));
-  L.push("—", `TOTAL : ${money(sale.total)}`, `Payé par ${sale.mode}`);
+  L.push("—");
+  if (sale.discount > 0 || sale.tip > 0) {
+    L.push(`Sous-total : ${money(sale.subtotal != null ? sale.subtotal : sale.items.reduce((s, it) => s + it.price * it.qty, 0))}`);
+    if (sale.discount > 0) L.push(`Remise : -${money(sale.discount)}`);
+    if (sale.tip > 0) L.push(`Pourboire : +${money(sale.tip)}`);
+  }
+  L.push(`TOTAL : ${money(sale.total)}`, `Payé par ${sale.mode}`);
   if (DB.salon.receiptFooter) L.push("", DB.salon.receiptFooter);
   return L.filter((x) => x !== undefined).join("\n");
 }
@@ -637,6 +719,7 @@ function receiptSheet(sale) {
       <div class="m" style="font-size:12.5px;color:var(--muted);margin-bottom:8px">${fmtDFull(sale.date)} · ${esc(clientName(sale.clientId))}</div>
       ${sale.items.map((it) => `<div class="ln"><span>${esc(it.name)}${it.qty > 1 ? " × " + it.qty : ""}</span><span class="num">${money(it.price * it.qty)}</span></div>`).join("")}
       <div class="sep"></div>
+      ${(sale.discount > 0 || sale.tip > 0) ? `<div class="ln mut"><span>Sous-total</span><span class="num">${money(sale.subtotal != null ? sale.subtotal : sale.items.reduce((s, it) => s + it.price * it.qty, 0))}</span></div>${sale.discount > 0 ? `<div class="ln mut"><span>Remise</span><span class="num">− ${money(sale.discount)}</span></div>` : ""}${sale.tip > 0 ? `<div class="ln mut"><span>Pourboire</span><span class="num">+ ${money(sale.tip)}</span></div>` : ""}` : ""}
       <div class="tot"><b style="font-size:15px">TOTAL</b><b>${money(sale.total)}</b></div>
       <div class="m" style="font-size:12.5px;color:var(--muted);margin-top:3px">Payé par ${esc(sale.mode)}</div>
       ${DB.salon.receiptFooter ? `<div style="text-align:center;margin-top:14px;font-size:12.5px;color:var(--muted)">${esc(DB.salon.receiptFooter)}</div>` : ""}

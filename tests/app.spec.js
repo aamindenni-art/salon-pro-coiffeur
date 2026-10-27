@@ -84,6 +84,59 @@ test("caisse : ajouter une prestation et encaisser crée une vente", async ({ pa
   expect(apres).toBe(avant + 1);
 });
 
+test("caisse : article libre, remise et rendu de monnaie", async ({ page }) => {
+  await demarrerAvecExemples(page);
+  await page.locator('#nav [data-nav="pos"]').click();
+
+  // Article libre (prix au choix)
+  await page.locator("#freeItem").click();
+  await page.locator("#fi_name").fill("Coupe enfant");
+  await page.locator("#fi_price").fill("500");
+  await page.locator(".sheet [data-add]").click();
+  await expect(page.locator("#cartbar")).toBeVisible();
+
+  // Encaissement
+  await page.locator("#checkout").click();
+  await expect(page.locator("#c_totals")).toContainText("500");
+
+  // Remise de 100 DA → total 400
+  await page.locator("#c_disc").fill("100");
+  await expect(page.locator("#c_totals")).toContainText("Remise");
+  await expect(page.locator("[data-pay]")).toContainText("400");
+
+  // Espèces : montant reçu 500 → à rendre 100
+  await page.locator('#c_mode [data-m="Espèces"]').click();
+  await page.locator("#c_paid").fill("500");
+  await expect(page.locator("#c_change")).toContainText(/rendre/i);
+  await expect(page.locator("#c_change")).toContainText("100");
+
+  // Valider → reçu + vente stockée avec la remise
+  await page.locator("[data-pay]").click();
+  await expect(page.locator(".sheet-h h3")).toHaveText("Reçu");
+  const sale = await page.evaluate(() => DB.sales[DB.sales.length - 1]);
+  expect(sale.discount).toBe(100);
+  expect(sale.total).toBe(400);
+});
+
+test("caisse : la recherche filtre les prestations", async ({ page }) => {
+  await demarrerAvecExemples(page);
+  await page.locator('#nav [data-nav="pos"]').click();
+  const tiles = page.locator("#svcWrap .svc-tile");
+  const n = await tiles.count();
+  expect(n).toBeGreaterThan(1);
+
+  await page.locator("#posq").fill("barbe");
+  const filtre = await tiles.count();
+  expect(filtre).toBeGreaterThan(0);
+  expect(filtre).toBeLessThan(n);
+
+  await page.locator("#posq").fill("zzz_introuvable");
+  await expect(page.locator("#svcWrap")).toContainText("Aucune prestation trouvée");
+
+  await page.locator("#posq").fill("");
+  await expect(tiles.first()).toBeVisible();
+});
+
 test("verrouillage : définir un code, verrouiller, déverrouiller", async ({ page }) => {
   await demarrerAvecExemples(page);
 
