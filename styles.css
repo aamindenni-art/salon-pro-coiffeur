@@ -322,6 +322,27 @@ a{color:var(--accent-ink)}
 .onb-dots i{width:7px;height:7px;border-radius:999px;background:var(--border-strong)}
 .onb-dots i.on{background:var(--accent);width:22px}
 
+/* ---------- Verrouillage par code ---------- */
+.lock{position:fixed;inset:0;z-index:95;display:flex;flex-direction:column;justify-content:center;
+  background:radial-gradient(1100px 500px at 50% -8%,var(--accent-soft),transparent 70%),var(--bg);
+  padding:calc(var(--sat) + 20px) max(22px,var(--sal)) calc(var(--sab) + 24px) max(22px,var(--sar))}
+.lock-inner{max-width:330px;width:100%;margin:auto;text-align:center}
+.lock-logo{width:72px;height:72px;border-radius:20px;display:grid;place-items:center;margin:0 auto 16px;
+  background:var(--logo-grad);color:#fff;font-family:var(--sign);font-size:38px;letter-spacing:1px;box-shadow:var(--sh-3)}
+.lock h2{font-family:var(--sign);font-weight:400;font-size:30px;letter-spacing:1px}
+.lock p{color:var(--muted);margin:4px 0 26px;font-family:var(--ff-display);letter-spacing:1.5px;text-transform:uppercase;font-size:12px}
+.lock .dots{display:flex;gap:18px;justify-content:center;margin-bottom:34px}
+.lock .dots i{width:15px;height:15px;border-radius:50%;border:2px solid var(--line-2);transition:.15s}
+.lock .dots i.on{background:var(--accent);border-color:var(--accent);box-shadow:0 0 12px var(--accent-soft)}
+.lock .dots.err i{border-color:var(--bad);animation:shake .45s}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+.keypad{display:grid;grid-template-columns:repeat(3,76px);gap:18px;justify-content:center}
+.kb{height:76px;border-radius:50%;background:linear-gradient(180deg,var(--surface),var(--surface-2));border:1px solid var(--line);
+  font-family:var(--sign);font-weight:400;font-size:30px;letter-spacing:1px;color:var(--fg);box-shadow:var(--sh-1);transition:transform .08s,background .15s}
+.kb:active{transform:scale(.92);background:var(--surface-3)}
+.kb.back{background:transparent;border:none;box-shadow:none;color:var(--muted);display:grid;place-items:center}
+.kb.back svg{width:26px;height:26px}
+
 /* ---------- Toast & banner ---------- */
 .toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + var(--sab) + 16px);transform:translateX(-50%);z-index:90;
   background:var(--fg);color:var(--bg);padding:12px 18px;border-radius:13px;font-weight:600;font-size:14px;box-shadow:var(--sh-3);

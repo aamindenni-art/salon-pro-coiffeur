@@ -71,7 +71,7 @@ const BASE = () => ({
     name: "Mon salon", currency: "DA", phone: "", address: "",
     reminderTemplate: "Bonjour {client}, nous vous rappelons votre rendez-vous {date} à {heure} chez {salon}. En cas d'empêchement, merci de nous prévenir.",
     receiptFooter: "Merci ! N'hésitez pas à nous recommander à vos proches.",
-    defaultDuration: 30, onboarded: false,
+    defaultDuration: 30, onboarded: false, pin: "",
   },
   services: [], clients: [], appointments: [], sales: [], expenses: [], reminders: [],
 });
@@ -300,6 +300,7 @@ function renderChrome() {
   $("#brand").textContent = DB.salon.name || "Salon Pro";
   $("#logo").textContent = initials(DB.salon.name).slice(0, 1) || "S";
   $("#btnTheme").innerHTML = svg(dark ? "sun" : "moon");
+  const bl = $("#btnLock"); if (bl) bl.hidden = !DB.salon.pin;
   // nav
   const todayRdv = DB.appointments.filter((r) => r.date === today() && r.status !== "annule").length;
   $("#nav").innerHTML = NAV.map((n) => `<button data-nav="${n.key}" class="${route === n.key ? "active" : ""}">${svg(n.icon)}<span>${n.label}</span>${n.key === "rdv" && todayRdv ? `<span class="dot count">${todayRdv}</span>` : ""}</button>`).join("");
@@ -745,6 +746,15 @@ function viewSettings(c) {
     <div class="card"><div class="card-h"><h3>Apparence</h3></div><div class="card-b">
       <div class="seg" id="theme">${[["system", "Système"], ["light", "Clair"], ["dark", "Sombre"]].map(([k, l]) => `<button data-t="${k}" class="${mode === k ? "active" : ""}">${l}</button>`).join("")}</div></div></div>
 
+    <div class="card"><div class="card-h"><h3>Sécurité</h3>${s.pin ? '<span class="pill good">Activé</span>' : '<span class="pill mut">Désactivé</span>'}</div><div class="card-b">
+      <label class="check" style="justify-content:space-between;cursor:pointer;margin-bottom:6px">
+        <span style="font-weight:600">Verrouiller par code</span>
+        <span class="switch"><input type="checkbox" id="pinToggle" ${s.pin ? "checked" : ""}><span class="track"></span></span>
+      </label>
+      <div class="hint" style="margin-bottom:${s.pin ? "12px" : "0"}">Un code à 4 chiffres sera demandé à chaque ouverture de l'application.</div>
+      ${s.pin ? `<div style="display:flex;gap:9px"><button class="btn sm" id="pinChange">${svg("edit")}Changer le code</button><button class="btn sm" id="pinLock">${svg("lock")}Verrouiller</button></div>` : ""}
+    </div></div>
+
     <div class="card"><div class="card-h"><h3>Mes données</h3><span class="mut">${DB.clients.length} clients · ${DB.sales.length} ventes</span></div><div class="card-b">
       <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Tout est stocké sur ce téléphone. Faites une sauvegarde de temps en temps (fichier à garder ou à vous envoyer).</p>
       <div style="display:flex;flex-direction:column;gap:9px">
@@ -760,6 +770,12 @@ function viewSettings(c) {
   $("#saveSalon").onclick = () => { s.name = $("#s_name").value.trim() || "Mon salon"; s.currency = $("#s_cur").value.trim() || "DA"; s.phone = $("#s_phone").value.trim(); s.address = $("#s_addr").value.trim(); save(); render(); toast("Enregistré"); };
   $("#saveMsg").onclick = () => { s.reminderTemplate = $("#s_tmpl").value; s.receiptFooter = $("#s_foot").value.trim(); s.defaultDuration = Number($("#s_dur").value) || 30; save(); toast("Enregistré"); };
   $$("#theme [data-t]").forEach((b) => b.onclick = () => { setTheme(b.dataset.t); viewSettings(c); });
+  const tgl = $("#pinToggle"); if (tgl) tgl.onchange = () => {
+    if (tgl.checked) setPinSheet((ok) => { if (!ok) tgl.checked = false; viewSettings(c); });
+    else confirmSheet("Désactiver le verrouillage ?", "L'application s'ouvrira sans code.", () => { DB.salon.pin = ""; save(); viewSettings(c); toast("Verrouillage désactivé"); }, { yes: "Désactiver" });
+  };
+  const pc = $("#pinChange"); if (pc) pc.onclick = () => setPinSheet(() => viewSettings(c));
+  const pl = $("#pinLock"); if (pl) pl.onclick = lockNow;
   $("#backup").onclick = shareOrDownloadBackup;
   $("#copybk").onclick = async () => { try { await navigator.clipboard.writeText(backupText()); toast("Sauvegarde copiée"); } catch (e) { restoreSheet(true); } };
   $("#restore").onclick = () => restoreSheet();
@@ -859,9 +875,55 @@ function showUpdateBanner(worker) {
 }
 
 /* ======================= Initialisation ======================= */
+/* ======================= Verrouillage par code PIN ======================= */
+let appUnlocked = false;
+let pinEntry = "";
+function lockNow() { if (!DB.salon.pin) return; appUnlocked = false; haptic(); showLock(); }
+function showLock() {
+  const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "back"];
+  $("#lock-root").innerHTML = `<div class="lock"><div class="lock-inner">
+    <div class="lock-logo">${initials(DB.salon.name).slice(0, 1) || "S"}</div>
+    <h2>${esc(DB.salon.name || "Salon Pro")}</h2>
+    <p>Entrez votre code</p>
+    <div class="dots" id="pdots"><i></i><i></i><i></i><i></i></div>
+    <div class="keypad">${keys.map((k) => k === "" ? "<span></span>" : k === "back"
+      ? `<button class="kb back" data-k="back" aria-label="Effacer">${svg("backspace")}</button>`
+      : `<button class="kb" data-k="${k}">${k}</button>`).join("")}</div>
+  </div></div>`;
+  pinEntry = "";
+  $$("#lock-root .kb").forEach((b) => b.onclick = () => b.dataset.k === "back" ? pinBack() : pinAdd(b.dataset.k));
+}
+function pinDots() { const d = $("#pdots"); if (d) [...d.children].forEach((x, i) => x.classList.toggle("on", i < pinEntry.length)); }
+function pinAdd(d) { if (pinEntry.length >= 4) return; pinEntry += d; haptic(6); pinDots(); if (pinEntry.length === 4) setTimeout(pinCheck, 130); }
+function pinBack() { pinEntry = pinEntry.slice(0, -1); haptic(6); pinDots(); }
+function pinCheck() {
+  if (pinEntry === DB.salon.pin) { appUnlocked = true; $("#lock-root").innerHTML = ""; haptic(12); }
+  else { const d = $("#pdots"); if (d) d.classList.add("err"); haptic(60); setTimeout(() => { pinEntry = ""; pinDots(); const d2 = $("#pdots"); if (d2) d2.classList.remove("err"); }, 480); }
+}
+function setPinSheet(onDone) {
+  openSheet("Code de verrouillage", `
+    <p style="margin:0 0 12px;color:var(--muted);font-size:13.5px">Choisissez un code à 4 chiffres. Il sera demandé à chaque ouverture de l'application.</p>
+    <div class="row2">
+      <div class="field"><label>Nouveau code</label><input id="pin1" inputmode="numeric" maxlength="4" type="password" placeholder="••••"></div>
+      <div class="field"><label>Confirmer</label><input id="pin2" inputmode="numeric" maxlength="4" type="password" placeholder="••••"></div>
+    </div>`, {
+    footer: `<button class="btn ghost" data-cancel>Annuler</button><button class="btn primary" data-save>${svg("check")}Enregistrer</button>`,
+    onMount(rt) {
+      $("[data-cancel]", rt).onclick = () => { closeSheet(); if (onDone) onDone(false); };
+      $("[data-save]", rt).onclick = () => {
+        const a = $("#pin1").value.trim(), b = $("#pin2").value.trim();
+        if (!/^\d{4}$/.test(a)) { toast("Entrez 4 chiffres", "bad"); return; }
+        if (a !== b) { toast("Les codes ne correspondent pas", "bad"); return; }
+        DB.salon.pin = a; appUnlocked = true; save(); closeSheet(); render(); toast("Verrouillage activé ✓"); if (onDone) onDone(true);
+      };
+    },
+  });
+}
+
 function boot() {
   $("#btnSettings").innerHTML = svg("gear");
   $("#btnInstall").innerHTML = svg("install");
+  const bl = $("#btnLock"); if (bl) { bl.innerHTML = svg("lock"); bl.onclick = lockNow; }
   $("#logo").onclick = () => go("dash");
   $("#btnSettings").onclick = () => go("settings");
   $("#btnTheme").onclick = () => { setTheme(isDark() ? "light" : "dark"); };
@@ -871,6 +933,7 @@ function boot() {
   renderChrome();
   if (!DB.salon.onboarded && !DB.sales.length && !DB.clients.length) startOnboarding();
   onHash();
+  if (DB.salon.pin && !appUnlocked) showLock();   // verrouillage par code
   registerSW();
 }
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot); else boot();
