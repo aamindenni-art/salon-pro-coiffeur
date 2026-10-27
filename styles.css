@@ -283,7 +283,7 @@ a{color:var(--accent-ink)}
   padding:12px max(16px,var(--sar)) 12px max(16px,var(--sal));
   background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   border-top:1px solid var(--line-2);box-shadow:var(--sh-up);display:flex;align-items:center;gap:12px;transform:translateY(0);transition:transform .25s}
-.cart-bar.hidden-bar{transform:translateY(130%)}
+.cart-bar.hidden-bar{transform:translateY(130%);pointer-events:none}
 .cart-bar .sum{flex:1;min-width:0}
 .cart-bar .sum .c{font-family:var(--ff-display);font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--muted)}
 .cart-bar .sum .t{font-family:var(--sign);font-weight:400;font-size:26px;letter-spacing:1px}
