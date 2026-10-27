@@ -40,6 +40,8 @@ const ICONS = {
   back:'<path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
   install:'<rect x="6" y="2.5" width="12" height="19" rx="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v6m0 0 2.3-2.3M12 13l-2.3-2.3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   info:'<circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v5M12 7.6v.4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  lock:'<rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/>',
+  backspace:'<path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10l4 4M16 10l-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
   clock:'<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5.2l3.3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
 };
 function svg(name, cls) { return `<svg viewBox="0 0 24 24" ${cls ? `class="${cls}"` : ""} fill="none" aria-hidden="true">${ICONS[name] || ""}</svg>`; }
@@ -787,7 +789,14 @@ function startOnboarding() {
   const draw = () => {
     if (step === 0) {
       root.innerHTML = `<div class="onb"><div class="onb-inner">
-        <div class="logo-xl">S</div>
+        <svg class="onb-emblem" viewBox="0 0 160 160" aria-hidden="true">
+          <defs><linearGradient id="oe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0d290"/><stop offset="1" stop-color="#a07d2b"/></linearGradient></defs>
+          <circle cx="80" cy="80" r="62" fill="none" stroke="url(#oe)" stroke-width="1.6" opacity=".55"/>
+          <circle cx="80" cy="80" r="52" fill="none" stroke="url(#oe)" stroke-width=".8" opacity=".35"/>
+          <g transform="translate(80,82) rotate(-50) scale(3.1) translate(-12,-12)" fill="none" stroke="url(#oe)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.3 7.5 20 18M8.3 16.5 20 6"/></g>
+          <g transform="translate(80,82) rotate(50) scale(3.1) translate(-15,-7)" fill="none" stroke="url(#oe)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="11" height="4" rx="2"/><path d="M12.6 5.2 L27 3.5 a1.4 1.4 0 0 1 1.1 2.1 L13.4 9"/><circle cx="12.7" cy="7" r=".9" fill="url(#oe)"/></g>
+          <path d="M80 11 l1.8 4.6 4.9.6-3.5 3.3.9 4.8-4.1-2.3-4.1 2.3.9-4.8-3.5-3.3 4.9-.6z" fill="url(#oe)" opacity=".85"/>
+        </svg>
         <h1>Bienvenue sur Salon Pro</h1>
         <p class="lead">L'application pour gérer votre salon : clients, rendez-vous, caisse, finances et rappels — même sans internet, tout reste sur votre téléphone.</p>
         <div class="onb-dots"><i class="on"></i><i></i></div>
