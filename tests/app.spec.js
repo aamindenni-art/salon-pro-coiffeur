@@ -43,6 +43,31 @@ test("la navigation ouvre tous les onglets", async ({ page }) => {
   }
 });
 
+test("barre du haut : aucun bouton fantôme vide (install/cadenas masqués)", async ({ page }) => {
+  await demarrerAvecExemples(page);
+  // Les boutons masqués (install non dispo, cadenas sans code PIN) ne doivent
+  // pas apparaître comme des cases vides.
+  await expect(page.locator("#btnLock")).toBeHidden();
+  await expect(page.locator("#btnSettings")).toBeVisible();
+  await expect(page.locator("#btnTheme")).toBeVisible();
+  // Chaque bouton visible de la barre a bien une icône (pas de case vide).
+  const vides = await page.locator(".topbar-actions .iconbtn:visible").evaluateAll(
+    (btns) => btns.filter((b) => !b.querySelector("svg")).length
+  );
+  expect(vides).toBe(0);
+});
+
+test("bascule jour/nuit : le thème et l'icône changent", async ({ page }) => {
+  await demarrerAvecExemples(page);
+  const theme = () => page.evaluate(() => document.documentElement.getAttribute("data-theme"));
+  const avant = await theme();
+  await page.locator("#btnTheme").click();
+  expect(await theme()).not.toBe(avant);                      // le thème a bien changé
+  await expect(page.locator("#btnTheme svg")).toBeVisible();  // l'icône se met à jour
+  await page.locator("#btnTheme").click();
+  expect(await theme()).toBe("light");                        // re-bascule explicite
+});
+
 test("caisse : ajouter une prestation et encaisser crée une vente", async ({ page }) => {
   await demarrerAvecExemples(page);
   const avant = await page.evaluate(() => DB.sales.length);
