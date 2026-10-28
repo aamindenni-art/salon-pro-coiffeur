@@ -15,6 +15,8 @@ create table if not exists public.appointments (
   duration      int  not null default 30,   -- durée en minutes
   service_name  text not null,
   price         int  not null default 0,
+  place         text not null default 'salon',   -- salon | home
+  address       text,                            -- adresse si à domicile
   client_name   text not null,
   client_phone  text not null,
   status        text not null default 'pending'  -- pending | confirmed | cancelled

@@ -125,6 +125,13 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
 .slot.off{opacity:.3;pointer-events:none}
 .slot.taken{opacity:.55;position:relative}
 .slot.taken small{display:block;font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--gold);opacity:.8;margin-top:1px}
+.place{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:6px}
+.place button{display:flex;flex-direction:column;align-items:center;gap:3px;padding:14px 8px;border:1px solid var(--line);background:var(--panel-3);border-radius:13px;color:var(--cream);text-align:center;transition:.15s}
+.place button svg{width:22px;height:22px;color:var(--gold);margin-bottom:2px}
+.place button b{font-size:14px}
+.place button small{font-size:11px;color:var(--muted)}
+.place button.sel{border-color:transparent;background:linear-gradient(180deg,var(--gold-br),var(--gold-dp));color:#1a1407}
+.place button.sel svg,.place button.sel small{color:#1a1407}
 .done{text-align:center;padding:26px 16px}
 .done-ic{width:62px;height:62px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;color:#1a1407;background:linear-gradient(180deg,var(--gold-br),var(--gold-dp))}
 .done-ic svg{width:30px;height:30px}
@@ -297,6 +304,19 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
     <div class="panel gleam">
       <div id="needSvc" class="needsvc">Choisissez d'abord une prestation ci-dessus 👆</div>
       <div id="booking" class="hidden">
+        <div id="placeWrap">
+          <div class="sub-lbl">Lieu</div>
+          <div class="place" id="placeSel">
+            <button type="button" data-place="salon" class="sel">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 10 12 4l8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1Z" stroke-linejoin="round"/></svg>
+              <b>Au salon</b><small id="salonLoc"></small>
+            </button>
+            <button type="button" data-place="home">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="10" r="3"/><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z" stroke-linejoin="round"/></svg>
+              <b>À domicile</b><small id="feeTxt"></small>
+            </button>
+          </div>
+        </div>
         <div class="sub-lbl">Choisir le jour</div>
         <div class="chips" id="dayChips"></div>
         <div class="sub-lbl">Choisir l'heure</div>
@@ -305,6 +325,7 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
           <div class="sub-lbl">Vos coordonnées</div>
           <div class="field"><label>Votre nom</label><input id="cName" placeholder="Ex : Karim" autocomplete="name"></div>
           <div class="field"><label>Votre téléphone</label><input id="cPhone" type="tel" placeholder="0661 ..." autocomplete="tel"></div>
+          <div class="field hidden" id="addrField"><label>Adresse (où vous recevoir)</label><input id="cAddr" placeholder="Rue, quartier, repère…" autocomplete="street-address"></div>
           <div class="summary" id="summary"></div>
         </div>
         <button id="cta" class="cta" disabled>Choisir un créneau</button>
@@ -353,6 +374,7 @@ const SALON = {
     6:{on:true, open:"09:00", close:"19:00"}
   },
   closedDates: [],
+  home: { enabled:true, fee:500 },   // réservation à domicile : frais de déplacement (DA). enabled:false = désactiver.
   services: [
     { name:"Coupe",         price:600, duration:30 },
     { name:"Coupe + barbe", price:900, duration:45 }
@@ -378,7 +400,9 @@ const money=(n)=>Math.round(n).toLocaleString("fr-FR")+" DA";
 const pad=(n)=>String(n).padStart(2,"0");
 const isoD=(d)=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const toMin=(hhmm)=>{const [h,m]=String(hhmm).split(":").map(Number);return h*60+(m||0);};
-let sel={svc:null,date:null,time:null};
+let sel={svc:null,date:null,time:null,place:"salon"};
+const placeFee=()=> (sel.place==="home" && SALON.home && SALON.home.enabled) ? (SALON.home.fee||0) : 0;
+const totalPrice=()=> (sel.svc?sel.svc.price:0) + placeFee();
 
 /* ---- Réservation automatique : créneaux déjà pris ---- */
 const ONLINE = !!(SUPABASE.url && SUPABASE.anonKey);
@@ -503,32 +527,60 @@ function buildSlots(){
 }
 function drawSummary(){
   const d=new Date(sel.date+"T00:00");
+  const fee=placeFee();
   $("#summary").innerHTML=`
     <div class="sr"><span>Prestation</span><b>${sel.svc.name}</b></div>
+    <div class="sr"><span>Lieu</span><b>${sel.place==="home"?"À domicile":"Au salon"}</b></div>
     <div class="sr"><span>Date</span><b>${JOURSL[d.getDay()]} ${d.getDate()} ${MOISL[d.getMonth()]}</b></div>
     <div class="sr"><span>Heure</span><b>${sel.time}</b></div>
-    <div class="sr"><span>Prix</span><b class="hl">${money(sel.svc.price)}</b></div>`;
+    ${fee>0?`<div class="sr"><span>Déplacement</span><b>+ ${money(fee)}</b></div>`:``}
+    <div class="sr"><span>Prix</span><b class="hl">${money(totalPrice())}</b></div>`;
 }
 function update(){
   const cta=$("#cta"), note=$("#ctaNote");
   if(!sel.svc){cta.disabled=true;cta.className="cta";cta.textContent="Choisir une prestation";return;}
   if(!sel.time){cta.disabled=true;cta.className="cta";cta.textContent="Choisir un créneau";return;}
   const name=$("#cName").value.trim(), phone=$("#cPhone").value.trim();
-  cta.disabled=!(name&&phone); cta.className="cta wa";
+  const addr=(($("#cAddr")||{}).value||"").trim();
+  const needAddr = sel.place==="home";
+  cta.disabled=!(name&&phone&&(!needAddr||addr)); cta.className="cta wa";
   cta.innerHTML=`<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3Zm0 2a7 7 0 1 1-3.6 13l-.4-.2-2.3.6.6-2.2-.2-.4A7 7 0 0 1 12 5Z"/></svg> Envoyer ma demande`;
-  note.textContent = SALON.whatsapp ? "Votre demande part sur le WhatsApp du salon ; il vous confirmera." : "Démo : configurez le numéro WhatsApp.";
+  note.textContent = (needAddr && !addr) ? "Indiquez votre adresse pour le domicile." : (SALON.whatsapp ? "Votre demande part sur le WhatsApp du salon ; il vous confirmera." : "Démo : configurez le numéro WhatsApp.");
 }
 $("#cName").oninput=update; $("#cPhone").oninput=update;
+{ const a=$("#cAddr"); if(a) a.oninput=update; }
+
+// Lieu : au salon / à domicile
+(function(){
+  if(!(SALON.home && SALON.home.enabled)){ const pw=$("#placeWrap"); if(pw) pw.classList.add("hidden"); sel.place="salon"; return; }
+  $("#salonLoc").textContent = SALON.loc || SALON.address || "Au salon";
+  $("#feeTxt").textContent = SALON.home.fee>0 ? ("+ "+money(SALON.home.fee)) : "Gratuit";
+  document.querySelectorAll("[data-place]").forEach(b=>b.onclick=()=>{
+    sel.place=b.dataset.place;
+    document.querySelectorAll("[data-place]").forEach(x=>x.classList.toggle("sel",x===b));
+    const af=$("#addrField"); if(af) af.classList.toggle("hidden", sel.place!=="home");
+    if(sel.time) drawSummary();
+    update();
+  });
+})();
+
 function whatsappOut(name,phone,d){
+  const addr=(($("#cAddr")||{}).value||"").trim();
+  const lieu = sel.place==="home" ? `À domicile — ${addr}` : "Au salon";
+  const fee=placeFee();
   const msg=`Bonjour ${SALON.name}, je souhaite réserver :\n`+
-    `• ${sel.svc.name} (${sel.svc.duration} min) — ${money(sel.svc.price)}\n`+
-    `• ${JOURSL[d.getDay()]} ${d.getDate()} ${MOISL[d.getMonth()]} à ${sel.time}\n\n`+
+    `• ${sel.svc.name} (${sel.svc.duration} min)\n`+
+    `• ${JOURSL[d.getDay()]} ${d.getDate()} ${MOISL[d.getMonth()]} à ${sel.time}\n`+
+    `• Lieu : ${lieu}${fee>0?` (déplacement + ${money(fee)})`:``}\n`+
+    `• Total : ${money(totalPrice())}\n\n`+
     `Nom : ${name}\nTéléphone : ${phone}\n\nMerci de me confirmer. 🙏`;
   if(SALON.whatsapp) window.location.href="https://wa.me/"+SALON.whatsapp+"?text="+encodeURIComponent(msg);
 }
 $("#cta").onclick=async ()=>{
   const name=$("#cName").value.trim(), phone=$("#cPhone").value.trim();
+  const addr=(($("#cAddr")||{}).value||"").trim();
   if(!sel.svc||!sel.time||!name||!phone) return;
+  if(sel.place==="home" && !addr){ alert("Indiquez votre adresse pour une réservation à domicile."); return; }
   const d=new Date(sel.date+"T00:00");
   const cta=$("#cta");
 
@@ -545,7 +597,8 @@ $("#cta").onclick=async ()=>{
       }
       const { error } = await sb.from("appointments").insert({
         date:sel.date, time:sel.time, duration:dur,
-        service_name:sel.svc.name, price:sel.svc.price,
+        service_name:sel.svc.name, price:totalPrice(),
+        place:sel.place, address: sel.place==="home"?addr:null,
         client_name:name, client_phone:phone, status:"pending"
       });
       if(error) throw error;

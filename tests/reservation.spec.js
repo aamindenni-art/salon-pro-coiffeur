@@ -46,4 +46,25 @@ test.describe("Page de réservation", () => {
     await expect(cta).toBeEnabled();
     await expect(cta).toContainText(/Envoyer ma demande/i);
   });
+
+  test("réservation à domicile : adresse requise et supplément déplacement", async ({ page }) => {
+    await page.locator('[data-svc="0"]').click();
+    await page.locator('[data-place="home"]').click();
+    await page.locator("[data-day]").nth(1).click();
+    await page.locator("[data-slot]:not(.off)").first().click();
+
+    await page.locator("#cName").fill("Yacine");
+    await page.locator("#cPhone").fill("0770112233");
+
+    // Sans adresse, le bouton reste bloqué ; le champ adresse est visible
+    await expect(page.locator("#addrField")).toBeVisible();
+    await expect(page.locator("#cta")).toBeDisabled();
+
+    await page.locator("#cAddr").fill("Cité 200 logements, Birkhadem");
+    await expect(page.locator("#cta")).toBeEnabled();
+
+    // Le récapitulatif indique le lieu et le supplément
+    await expect(page.locator("#summary")).toContainText("À domicile");
+    await expect(page.locator("#summary")).toContainText("Déplacement");
+  });
 });
