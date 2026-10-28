@@ -62,6 +62,110 @@ function svcIcon(name, category) {
   if (/(brushing|coiffage|shampoing|shampooing|soin|lissage|s[èe]chage)/.test(t)) return "comb";
   return "scissors";
 }
+
+/* ===================== Réservations en ligne (Supabase) =====================
+   Côté coiffeur : les réservations faites sur la page publique rentrent ici.
+   Laissez vide = désactivé (rien ne change). Pour activer, renseignez :
+     url + anonKey  → les MÊMES que dans reservation/index.html
+     secret         → le code choisi dans supabase-schema.sql
+   Les 3 valeurs se collent ci-dessous, c'est le seul réglage à faire. */
+// Config lue depuis les Réglages (DB.salon.online), collable dans l'app.
+function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || "", anonKey: o.anonKey || "", secret: o.secret || "" }; }
+function onlineOn() { const c = onlineCfg(); return !!(c.url && c.anonKey && c.secret); }
+let _sb = null, _sbKey = "", onlineBookings = [], onlineLoaded = false, onlineErr = "", onlineLoading = false;
+
+async function sbClient() {
+  const c = onlineCfg();
+  if (_sb && _sbKey === c.url + c.anonKey) return _sb;   // recrée si les clés changent
+  const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
+  _sb = createClient(c.url, c.anonKey); _sbKey = c.url + c.anonKey;
+  return _sb;
+}
+// Charge les réservations à venir (en attente + confirmées). Re-render à la fin.
+async function loadOnlineBookings(rerender) {
+  if (!onlineOn() || onlineLoading) return;
+  onlineLoading = true; onlineErr = "";
+  try {
+    const sb = await sbClient();
+    const { data, error } = await sb.rpc("get_bookings", { secret: onlineCfg().secret, from_date: today() });
+    if (error) throw error;
+    onlineBookings = (data || []).filter((b) => b.status !== "cancelled");
+    onlineLoaded = true;
+  } catch (e) { onlineErr = (e && e.message) || "Connexion impossible"; console.warn("Réservations en ligne :", e); }
+  finally { onlineLoading = false; if (rerender) render(); }
+}
+function onlinePending() { return onlineBookings.filter((b) => b.status === "pending").length; }
+async function setBookingStatus(id, status) {
+  const sb = await sbClient();
+  const { error } = await sb.rpc("set_booking_status", { secret: onlineCfg().secret, booking_id: id, new_status: status });
+  if (error) throw error;
+}
+const phoneKey = (p) => String(p || "").replace(/\D/g, "").slice(-9);
+// Accepter : crée le client + la prestation si besoin, pose le RDV confirmé, puis confirme en ligne.
+async function acceptOnline(b) {
+  let cl = DB.clients.find((c) => phoneKey(c.phone) && phoneKey(c.phone) === phoneKey(b.client_phone));
+  if (!cl) { cl = { id: uid(), createdAt: today(), name: b.client_name || "Client", phone: b.client_phone || "", email: "", notes: "Réservation en ligne" }; DB.clients.push(cl); }
+  let sv = DB.services.find((s) => s.name.trim().toLowerCase() === String(b.service_name || "").trim().toLowerCase());
+  if (!sv) { sv = { id: uid(), name: b.service_name || "Prestation", price: b.price || 0, duration: b.duration || 30, category: "En ligne" }; DB.services.push(sv); }
+  DB.appointments.push({ id: uid(), reminded: false, clientId: cl.id, date: b.date, time: b.time, serviceIds: [sv.id], status: "confirme", online: true, place: b.place || "salon", address: b.address || "" });
+  save();
+  b.status = "confirmed";   // optimiste : le RDV est dans l'agenda → on sort la carte des « en attente » (pas de double-ajout)
+  render();
+  try { await setBookingStatus(b.id, "confirmed"); toast("Rendez-vous confirmé ✓"); }
+  catch (e) { toast("RDV ajouté à l'agenda (synchro en ligne à refaire)", "info"); }
+}
+async function refuseOnline(b) {
+  try { await setBookingStatus(b.id, "cancelled"); onlineBookings = onlineBookings.filter((x) => x.id !== b.id); toast("Réservation refusée — créneau libéré"); render(); }
+  catch (e) { toast("Échec : réessayez", "bad"); }
+}
+function viewOnline(c) {
+  const sub = !onlineOn() ? "Non activé" : (onlineLoading && !onlineLoaded ? "Chargement…" : onlineErr && !onlineLoaded ? "Hors ligne" : `${onlinePending()} en attente`);
+  const head = pageHead("Réservations en ligne", sub, onlineOn() ? `<button class="btn primary sm" id="onRefresh">${svg("history")}Actualiser</button>` : "");
+  if (!onlineOn()) {
+    c.innerHTML = head + `<div class="card"><div class="card-b">${emptyState("cal", "Pas encore activé", "Collez vos clés Supabase (url, anonKey, secret) en haut de app.js : les réservations des clients arriveront ici toutes seules.")}</div></div>`;
+    return;
+  }
+  const row = (b, confirmed) => {
+    const lieu = b.place === "home" ? `À domicile — ${esc(b.address || "")}` : "Au salon";
+    return `<div class="card on-card"><div class="card-b">
+      <div class="row" style="align-items:flex-start">
+        <div class="grow"><b>${esc(b.client_name)}</b><span class="sub">${esc(b.service_name)} · ${money(b.price)}</span></div>
+        <span class="pill accent display" style="font-size:15px">${esc(b.time)}</span></div>
+      <div class="on-meta">${svg("cal")}<span>${fmtDFull(b.date)}</span></div>
+      <div class="on-meta">${svg(b.place === "home" ? "home" : "scissors")}<span>${lieu}</span></div>
+      <a class="on-meta on-tel" href="tel:${esc(b.client_phone)}">${svg("phone")}<span>${esc(b.client_phone)}</span></a>
+      <div class="on-actions">${confirmed
+        ? `<span class="pill good" style="padding:8px 12px">${svg("check")} Confirmé</span>`
+        : `<button class="btn danger sm" data-refuse="${b.id}">Refuser</button><button class="btn primary sm grow" data-accept="${b.id}">${svg("check")}Accepter</button>`}</div>
+    </div></div>`;
+  };
+  const pend = onlineBookings.filter((b) => b.status === "pending");
+  const conf = onlineBookings.filter((b) => b.status === "confirmed");
+  let body = "";
+  if (onlineErr && !onlineLoaded) body += `<div class="card"><div class="card-b">${emptyState("info", "Connexion impossible", "Vérifiez internet ou les clés Supabase, puis Actualisez.")}</div></div>`;
+  else if (!onlineLoaded) body += `<div class="card"><div class="card-b hint" style="text-align:center;padding:24px">Chargement…</div></div>`;
+  else {
+    body += `<div class="section-lbl">En attente (${pend.length})</div>`;
+    body += pend.length ? pend.map((b) => row(b, false)).join("") : `<div class="card"><div class="card-b">${emptyState("check", "Tout est traité", "Aucune réservation en attente.")}</div></div>`;
+    if (conf.length) body += `<div class="section-lbl">Confirmées à venir (${conf.length})</div>` + conf.map((b) => row(b, true)).join("");
+  }
+  c.innerHTML = head + body;
+  const rf = $("#onRefresh"); if (rf) rf.onclick = () => { onlineLoaded = false; loadOnlineBookings(true); };
+  $$("[data-accept]", c).forEach((el) => el.onclick = () => { const b = onlineBookings.find((x) => x.id === el.dataset.accept); if (b) acceptOnline(b); });
+  $$("[data-refuse]", c).forEach((el) => el.onclick = () => { const b = onlineBookings.find((x) => x.id === el.dataset.refuse); if (b) confirmSheet("Refuser cette réservation ?", "Le créneau sera libéré pour d'autres clients.", () => refuseOnline(b)); });
+  if (!onlineLoaded && !onlineLoading) loadOnlineBookings(true);
+}
+function onlineHelpSheet() {
+  openSheet("Activer les réservations en ligne", `
+    <p style="margin:0 0 10px;font-size:14px;color:var(--muted)">Une seule fois, dans votre compte <b>Supabase</b> (gratuit) :</p>
+    <ol style="margin:0 0 14px;padding-left:20px;font-size:14px;line-height:1.7">
+      <li>Ouvrez le fichier <b>supabase-schema.sql</b> (dossier reservation), remplacez le code secret, puis collez-le dans Supabase → <b>SQL Editor</b> → <b>RUN</b>.</li>
+      <li>Allez dans <b>Settings → API</b> et copiez :<br>• <b>Project URL</b><br>• la clé <b>anon public</b></li>
+      <li>Collez l'URL, la clé et votre <b>code secret</b> dans les 3 champs, puis <b>Enregistrer</b>.</li>
+    </ol>
+    <p style="margin:0;font-size:13px;color:var(--muted)">Astuce : appuyez sur <b>Tester</b> pour vérifier la connexion. Mettez aussi l'URL et la clé anon dans la page publique <b>reservation/</b> pour que les créneaux pris se bloquent.</p>`,
+    { footer: `<button class="btn primary" data-close>${svg("check")}Compris</button>`, onMount(root) { $("[data-close]", root).onclick = closeSheet; } });
+}
 function svg(name, cls) { return `<svg viewBox="0 0 24 24" ${cls ? `class="${cls}"` : ""} fill="none" aria-hidden="true">${ICONS[name] || ""}</svg>`; }
 
 // Emblème de marque (ciseaux + rasoir + étoile, noir & or). Réutilisé partout :
@@ -323,7 +427,7 @@ const NAV = [
   { key: "clients", label: "Clients", icon: "users" },
   { key: "fin", label: "Finances", icon: "wallet" },
 ];
-const VIEWS = { dash: viewDash, rdv: viewRdv, pos: viewPos, clients: viewClients, fin: viewFin, services: viewServices, settings: viewSettings, coupe: viewCoupe };
+const VIEWS = { dash: viewDash, rdv: viewRdv, pos: viewPos, clients: viewClients, fin: viewFin, services: viewServices, settings: viewSettings, coupe: viewCoupe, online: viewOnline };
 let route = "dash";
 
 function go(key) { if (location.hash.slice(1) === key) render(); else location.hash = key; }
@@ -392,6 +496,8 @@ function viewDash(c) {
 
     ${bestDay >= 0 && bestVal > 0 ? `<div class="insight"><div class="ic" style="background:var(--accent-soft);color:var(--accent-ink)">${svg("trophy")}</div><div><b>Votre meilleur jour : le ${JOURSL[bestDay]}</b><span>C'est le jour où vous encaissez le plus. Pensez-y pour vos promos et rappels.</span></div></div>` : ""}
 
+    ${onlineOn() ? `<button class="promo" id="goOnline"><div class="ic">${svg("cal")}</div><div class="grow"><b>Réservations en ligne</b><span>${onlineLoaded ? (onlinePending() ? onlinePending() + " en attente de confirmation" : "Aucune en attente") : "Appuyez pour charger"}</span></div>${onlineLoaded && onlinePending() ? `<span class="dot count">${onlinePending()}</span>` : ""}<svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>` : ""}
+
     <button class="promo" id="goCoupe"><div class="ic">${svg("sparkle")}</div><div class="grow"><b>Coupe idéale</b><span>Photo du client → la coupe qui lui va</span></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
 
 
@@ -411,6 +517,8 @@ function viewDash(c) {
 
   $("#qnew").onclick = () => go("pos");
   const gc = $("#goCoupe"); if (gc) gc.onclick = () => go("coupe");
+  const go1 = $("#goOnline"); if (go1) go1.onclick = () => go("online");
+  if (onlineOn() && !onlineLoaded && !onlineLoading) loadOnlineBookings(true);
   $("#goRdv").onclick = () => go("rdv");
   $$("[data-client]", c).forEach((el) => el.onclick = () => openClient(el.dataset.client));
   lineChart($("#cRev"), rev14, money);
@@ -1000,7 +1108,7 @@ function expenseForm(id) {
 
 /* ======================= Vue : Réglages ======================= */
 function viewSettings(c) {
-  const s = DB.salon; const mode = themeMode();
+  const s = DB.salon; const mode = themeMode(); const oc = onlineCfg();
   c.innerHTML = pageHead("Réglages", "Votre salon & l'application") +
     `<div class="card"><div class="card-h"><h3>Mon salon</h3></div><div class="card-b">
       <div class="field"><label>Nom du salon</label><input id="s_name" value="${esc(s.name)}"></div>
@@ -1028,6 +1136,13 @@ function viewSettings(c) {
       ${s.pin ? `<div style="display:flex;gap:9px"><button class="btn sm" id="pinChange">${svg("edit")}Changer le code</button><button class="btn sm" id="pinLock">${svg("lock")}Verrouiller</button></div>` : ""}
     </div></div>
 
+    <div class="card"><div class="card-h"><h3>Réservations en ligne</h3>${onlineOn() ? '<span class="pill good">Activé</span>' : '<span class="pill mut">Désactivé</span>'}</div><div class="card-b">
+      <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Collez vos 3 valeurs Supabase : les réservations des clients arriveront toutes seules dans l'app. <a href="#" id="onHelp" style="color:var(--accent-ink)">Où les trouver ?</a></p>
+      <div class="field"><label>Project URL</label><input id="o_url" placeholder="https://xxxxx.supabase.co" value="${esc(oc.url)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="field"><label>Clé « anon public »</label><input id="o_key" placeholder="eyJhbGci..." value="${esc(oc.anonKey)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div class="field"><label>Code secret</label><input id="o_sec" placeholder="votre code du schéma SQL" value="${esc(oc.secret)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
+      <div style="display:flex;gap:9px"><button class="btn primary grow" id="saveOnline">${svg("check")}Enregistrer</button><button class="btn" id="testOnline">Tester</button></div></div></div>
+
     <div class="card"><div class="card-h"><h3>Mes données</h3><span class="mut">${DB.clients.length} clients · ${DB.sales.length} ventes</span></div><div class="card-b">
       <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Tout est stocké sur ce téléphone. Faites une sauvegarde de temps en temps (fichier à garder ou à vous envoyer).</p>
       <div style="display:flex;flex-direction:column;gap:9px">
@@ -1049,6 +1164,18 @@ function viewSettings(c) {
   };
   const pc = $("#pinChange"); if (pc) pc.onclick = () => setPinSheet(() => viewSettings(c));
   const pl = $("#pinLock"); if (pl) pl.onclick = lockNow;
+  $("#saveOnline").onclick = () => {
+    s.online = { url: $("#o_url").value.trim().replace(/\/+$/, ""), anonKey: $("#o_key").value.trim(), secret: $("#o_sec").value.trim() };
+    _sb = null; _sbKey = ""; onlineLoaded = false; onlineBookings = []; onlineErr = ""; save(); render(); toast(onlineOn() ? "Réservations en ligne activées ✓" : "Enregistré");
+  };
+  $("#testOnline").onclick = async () => {
+    const o = { url: $("#o_url").value.trim().replace(/\/+$/, ""), anonKey: $("#o_key").value.trim(), secret: $("#o_sec").value.trim() };
+    if (!(o.url && o.anonKey && o.secret)) { toast("Remplissez les 3 champs", "info"); return; }
+    s.online = o; _sb = null; _sbKey = ""; save(); toast("Test en cours…"); onlineLoaded = false;
+    await loadOnlineBookings(false);
+    toast(onlineErr ? "Échec : " + onlineErr : `OK — ${onlineBookings.length} réservation(s) lue(s)`, onlineErr ? "bad" : "good");
+  };
+  const oh = $("#onHelp"); if (oh) oh.onclick = (e) => { e.preventDefault(); onlineHelpSheet(); };
   $("#backup").onclick = shareOrDownloadBackup;
   $("#copybk").onclick = async () => { try { await navigator.clipboard.writeText(backupText()); toast("Sauvegarde copiée"); } catch (e) { restoreSheet(true); } };
   $("#restore").onclick = () => restoreSheet();

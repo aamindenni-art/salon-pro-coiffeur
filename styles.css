@@ -403,6 +403,14 @@ a{color:var(--accent-ink)}
 .promo .ic svg{width:21px;height:21px}
 .promo b{font-size:15px;display:block} .promo span{font-size:12.5px;color:var(--muted);display:block}
 .promo .chev{width:20px;height:20px;color:var(--accent-ink);flex:none}
+.promo .dot.count{flex:none}
+/* Réservations en ligne (écran coiffeur) */
+.on-card{margin-bottom:12px}
+.on-meta{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px;margin-top:8px}
+.on-meta svg{width:17px;height:17px;flex:none;color:var(--accent-ink)}
+.on-tel{color:var(--fg);text-decoration:none}
+.on-actions{display:flex;gap:10px;margin-top:14px}
+.on-actions .grow{flex:1}
 
 /* ---------- Module Coupe idéale ---------- */
 .coupe-photo{border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line);aspect-ratio:4/5;max-height:46vh;display:grid;place-items:center}
