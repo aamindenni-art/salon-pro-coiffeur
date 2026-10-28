@@ -44,11 +44,15 @@ h2{font-family:var(--sign);font-weight:400;font-size:34px;letter-spacing:1.5px;l
   padding:calc(12px + var(--sat)) 18px 12px;background:rgba(15,13,9,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
 .brand{display:flex;align-items:center;gap:10px}
 .brand .mk{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(145deg,var(--gold-br),var(--gold-dp));color:#1a1407;font-family:var(--sign);font-size:22px}
+.brand .mk svg{width:20px;height:20px}
 .brand .nm{font-family:var(--sign);font-size:20px;letter-spacing:1px;line-height:1}
 .nav .book{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;border-radius:10px;background:linear-gradient(180deg,var(--gold-br),var(--gold) 60%,var(--gold-dp));color:#1a1407}
 
 /* ---------- Hero ---------- */
-.hero{position:relative;text-align:center;padding:52px 18px 44px;overflow:hidden}
+.hero{position:relative;z-index:0;text-align:center;padding:52px 18px 44px;overflow:hidden}
+/* Photo d'ambiance barbier en fond (Unsplash), assombrie pour garder le texte or lisible */
+.hero::before{content:"";position:absolute;inset:0;z-index:-2;background:#0f0d09 url(https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1280&q=75&auto=format&fit=crop) center/cover;opacity:.32;filter:grayscale(.15) contrast(1.05)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(15,13,9,.55),rgba(15,13,9,.3) 45%,var(--bg))}
 .emblem{width:92px;height:92px;margin:0 auto 20px;position:relative}
 .emblem svg{width:100%;height:100%;color:var(--gold)}
 .poles{position:absolute;inset:0;pointer-events:none;overflow:hidden;opacity:.5}
@@ -95,6 +99,9 @@ h2{font-family:var(--sign);font-weight:400;font-size:34px;letter-spacing:1.5px;l
 .work-art{border:1px solid var(--line);border-radius:18px;background:
   radial-gradient(500px 240px at 50% 0,rgba(216,179,94,.1),transparent 70%),var(--panel);padding:40px 20px}
 .work-art .tools{width:120px;height:120px;margin:0 auto 14px;color:var(--gold)}
+.gallery{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:2px 0 22px}
+.gallery img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:12px;border:1px solid var(--line);display:block;background:var(--panel-2)}
+@media(max-width:520px){.gallery{grid-template-columns:repeat(2,1fr)}}
 .work-art .ln{font-family:var(--sign);font-size:30px;letter-spacing:2px}
 .work-art .d{color:var(--muted);font-size:13px;margin-top:4px}
 
@@ -140,7 +147,7 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
 <!-- ===================== NAV ===================== -->
 <nav class="nav">
   <div class="brand">
-    <div class="mk">B</div>
+    <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.2 7.5 20 18M8.2 16.5 20 6"/></svg></div>
     <div class="nm" id="navName">Barber Birkhadem</div>
   </div>
   <a class="book" href="../reservation/">Réserver</a>
@@ -218,12 +225,13 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
   <h2>Mon travail</h2>
   <p class="sub">La passion du détail, coupe après coupe.</p>
   <div class="work-art">
-    <div class="tools">
-      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="14" cy="46" r="5"/><circle cx="14" cy="24" r="5"/>
-        <path d="M18 27 50 48M18 43 50 16"/>
-        <path d="M44 44l8 8" /><rect x="40" y="12" width="14" height="5" rx="2.5" transform="rotate(0 40 12)"/>
-      </svg>
+    <div class="gallery">
+      <img loading="lazy" alt="Intérieur du salon" src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?w=500&h=500&q=70&auto=format&fit=crop">
+      <img loading="lazy" alt="Dégradé net" src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=500&h=500&q=70&auto=format&fit=crop">
+      <img loading="lazy" alt="Coupe en cours" src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?w=500&h=500&q=70&auto=format&fit=crop">
+      <img loading="lazy" alt="Finition coupe" src="https://images.unsplash.com/photo-1622286342621-4bd786c2447c?w=500&h=500&q=70&auto=format&fit=crop">
+      <img loading="lazy" alt="Rasoir et barbe" src="https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=500&h=500&q=70&auto=format&fit=crop">
+      <img loading="lazy" alt="Fauteuil de barbier" src="https://images.unsplash.com/photo-1512690459411-b9245aed614b?w=500&h=500&q=70&auto=format&fit=crop">
     </div>
     <div class="ln">L'ART DE LA COUPE</div>
     <div class="d">Suivez mes dernières réalisations sur Instagram.</div>

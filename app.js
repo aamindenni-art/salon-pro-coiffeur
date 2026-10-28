@@ -43,7 +43,25 @@ const ICONS = {
   lock:'<rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8 11V8a4 4 0 0 1 8 0v3" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/>',
   backspace:'<path d="M9 5h11a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H9l-6-7Z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M12 10l4 4M16 10l-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>',
   clock:'<circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7v5.2l3.3 2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+  // --- Icônes barbier (prestations) ---
+  clipper:'<rect x="7.5" y="8" width="9" height="11" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M9 8V5M11 8V4M13 8V4M15 8V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M10 12.5h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  razor:'<path d="M4 16.5 15.5 5a1.6 1.6 0 0 1 2.3 0 1.6 1.6 0 0 1 0 2.3L6.3 18.8a1.8 1.8 0 0 1-2.3-2.3Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M13 7.5l3.4 3.4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  beard:'<path d="M12 11c-1.4-1.9-2.9-2.4-4.8-2.4-2.4 0-3.9 1.4-3.9 1.4s.9 3.9 4.3 3.9c1.9 0 3.4-1.4 4.4-2.9 1 1.5 2.5 2.9 4.4 2.9 3.4 0 4.3-3.9 4.3-3.9s-1.5-1.4-3.9-1.4c-1.9 0-3.4.5-4.8 2.4Z" fill="currentColor"/>',
+  comb:'<path d="M4 8h16v3H4Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M6 11v6M8.5 11v6M11 11v6M13.5 11v6M16 11v6M18 11v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>',
+  kid:'<circle cx="12" cy="7" r="3.3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M6.5 20a5.5 5.5 0 0 1 11 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8.6 4.2a4.6 4.6 0 0 1 6.8 0" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+  dye:'<path d="M9.5 3h5v3.2l1.3 2.3V19a2 2 0 0 1-2 2h-3.6a2 2 0 0 1-2-2V8.5L9.5 6.2Z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.2 12.5h7.6" stroke="currentColor" stroke-width="1.5"/>',
 };
+
+// Choisit une icône barbier d'après le nom/catégorie de la prestation (sinon ciseaux).
+function svcIcon(name, category) {
+  const t = ((name || "") + " " + (category || "")).toLowerCase();
+  if (/(enfant|kid|garç|gar[cç]on|petit)/.test(t)) return "kid";
+  if (/(teinture|couleur|colorat|m[èe]che|coloration|henn)/.test(t)) return "dye";
+  if (/(barbe|rasage|rasoir|moustache|contour|taille)/.test(t)) return "razor";
+  if (/(d[ée]grad|fade|tondeuse|coupe|cheveux|homme)/.test(t)) return "clipper";
+  if (/(brushing|coiffage|shampoing|shampooing|soin|lissage|s[èe]chage)/.test(t)) return "comb";
+  return "scissors";
+}
 function svg(name, cls) { return `<svg viewBox="0 0 24 24" ${cls ? `class="${cls}"` : ""} fill="none" aria-hidden="true">${ICONS[name] || ""}</svg>`; }
 
 // Emblème de marque (ciseaux + rasoir + étoile, noir & or). Réutilisé partout :
@@ -767,7 +785,7 @@ function posGridHTML() {
   const list = DB.services.filter((s) => !q || (s.name || "").toLowerCase().includes(q) || (s.category || "").toLowerCase().includes(q));
   if (!list.length) return `<div class="card"><div class="card-b">${emptyState("search", "Aucune prestation trouvée", "Essayez un autre mot, ou utilisez « Article libre ».")}</div></div>`;
   const cats = [...new Set(list.map((s) => s.category || "Autres"))];
-  return cats.map((cat) => `<div class="section-lbl">${esc(cat)}</div><div class="svc-grid">${list.filter((s) => (s.category || "Autres") === cat).map((s) => `<button class="svc-tile" data-add="${s.id}"><div class="n">${esc(s.name)}</div><div class="p">${money(s.price)}</div><div class="d">${s.duration} min</div></button>`).join("")}</div>`).join("");
+  return cats.map((cat) => `<div class="section-lbl">${esc(cat)}</div><div class="svc-grid">${list.filter((s) => (s.category || "Autres") === cat).map((s) => `<button class="svc-tile" data-add="${s.id}"><div class="svc-ic">${svg(svcIcon(s.name, s.category))}</div><div class="n">${esc(s.name)}</div><div class="p">${money(s.price)}</div><div class="d">${s.duration} min</div></button>`).join("")}</div>`).join("");
 }
 function bindAdds(scope) {
   $$("[data-add]", scope).forEach((el) => el.onclick = () => { addToCart(serviceById(el.dataset.add)); haptic(); renderCartBar(); });
@@ -909,7 +927,7 @@ function receiptSheet(sale) {
 function viewServices(c) {
   const cats = [...new Set(DB.services.map((s) => s.category || "Autres"))];
   c.innerHTML = pageHead("Services & tarifs", `${DB.services.length} prestation${DB.services.length > 1 ? "s" : ""}`, `<button class="btn primary sm" id="add">${svg("plus")}Ajouter</button>`) +
-    (DB.services.length ? cats.map((cat) => `<div class="section-lbl">${esc(cat)}</div><div class="card"><div class="card-b" style="padding-top:6px;padding-bottom:6px"><div class="list">${DB.services.filter((s) => (s.category || "Autres") === cat).map((s) => `<div class="row" data-edit="${s.id}"><div class="grow"><b>${esc(s.name)}</b><span class="sub">${s.duration} min</span></div><b class="display" style="color:var(--accent-ink)">${money(s.price)}</b>${svg("edit", "")}</div>`).join("")}</div></div></div>`).join("")
+    (DB.services.length ? cats.map((cat) => `<div class="section-lbl">${esc(cat)}</div><div class="card"><div class="card-b" style="padding-top:6px;padding-bottom:6px"><div class="list">${DB.services.filter((s) => (s.category || "Autres") === cat).map((s) => `<div class="row" data-edit="${s.id}"><div class="svc-ic sm">${svg(svcIcon(s.name, s.category))}</div><div class="grow"><b>${esc(s.name)}</b><span class="sub">${s.duration} min</span></div><b class="display" style="color:var(--accent-ink)">${money(s.price)}</b>${svg("edit", "")}</div>`).join("")}</div></div></div>`).join("")
       : `<div class="card"><div class="card-b">${emptyState("scissors", "Aucune prestation", "Créez votre catalogue : coupe, barbe, couleur…")}</div></div>`);
   $("#add").onclick = () => serviceForm();
   $$("[data-edit]", c).forEach((el) => el.onclick = () => serviceForm(el.dataset.edit));

@@ -284,6 +284,11 @@ a{color:var(--accent-ink)}
 .svc-tile .n{font-weight:600;font-size:14px;line-height:1.25}
 .svc-tile .p{font-family:var(--sign);font-weight:400;letter-spacing:.5px;color:var(--accent-ink);font-size:21px;margin-top:6px}
 .svc-tile .d{font-family:var(--ff-display);font-size:11px;letter-spacing:.5px;color:var(--muted);margin-top:2px}
+/* Icône barbier de la prestation (caisse + catalogue) */
+.svc-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent-ink);margin-bottom:9px}
+.svc-ic svg{width:18px;height:18px}
+.svc-ic.sm{width:34px;height:34px;border-radius:10px;margin:0 11px 0 0;flex:none}
+.svc-ic.sm svg{width:19px;height:19px}
 .cart-bar{position:fixed;left:0;right:0;bottom:calc(var(--nav-h) + var(--sab));z-index:35;
   padding:12px max(16px,var(--sar)) 12px max(16px,var(--sal));
   background:color-mix(in srgb,var(--surface) 92%,transparent);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
