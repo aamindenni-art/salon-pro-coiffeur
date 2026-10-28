@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Barber Birkhadem — Coiffeur barbier à Birkhadem, Alger</title>
+<meta name="description" content="Barber Birkhadem — coupe & barbe à Birkhadem, Alger. Réservez en ligne, au salon ou à domicile. Ouvert tous les jours 9h–19h.">
+<meta name="theme-color" content="#100f0b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600&family=DM+Sans:opsz,wght@9..40,400;9..40,500&display=swap" rel="stylesheet">
+<style>
+/* =======================  CONFIG DESIGN  ======================= */
+:root{
+  --bg:#0f0d09; --panel:#171410; --panel-2:#1f1b15; --panel-3:#271f16;
+  --gold:#d8b35e; --gold-br:#f0d290; --gold-dp:#a07d2b;
+  --cream:#f2e8d4; --muted:#a79b80; --faint:#6f6552;
+  --line:rgba(216,179,94,.22); --line-2:rgba(216,179,94,.4);
+  --sign:"Bebas Neue", Impact, sans-serif;
+  --disp:"Oswald", system-ui, sans-serif;
+  --ff:"DM Sans", system-ui, sans-serif;
+  --sab:env(safe-area-inset-bottom); --sat:env(safe-area-inset-top);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--ff);background:var(--bg);color:var(--cream);line-height:1.5;
+  -webkit-font-smoothing:antialiased;overflow-x:hidden;
+  background-image:
+    radial-gradient(900px 500px at 50% -10%, rgba(216,179,94,.10), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");
+}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:720px;margin:0 auto;padding:0 18px}
+.eyebrow{font-family:var(--disp);font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);font-weight:600;display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.eyebrow::before,.eyebrow::after{content:"";height:1px;flex:1;max-width:40px;background:linear-gradient(90deg,transparent,var(--line-2))}
+.eyebrow::before{background:linear-gradient(90deg,var(--line-2),transparent)}
+h2{font-family:var(--sign);font-weight:400;font-size:34px;letter-spacing:1.5px;line-height:1;text-align:center;margin-bottom:6px}
+.block{padding:48px 0}
+.sub{color:var(--muted);text-align:center;max-width:460px;margin:0 auto 26px;font-size:15px}
+
+/* ---------- Topbar ---------- */
+.nav{position:sticky;top:0;z-index:40;display:flex;align-items:center;justify-content:space-between;
+  padding:calc(12px + var(--sat)) 18px 12px;background:rgba(15,13,9,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .mk{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;background:linear-gradient(145deg,var(--gold-br),var(--gold-dp));color:#1a1407;font-family:var(--sign);font-size:22px}
+.brand .nm{font-family:var(--sign);font-size:20px;letter-spacing:1px;line-height:1}
+.nav .book{font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:1px;text-transform:uppercase;padding:9px 16px;border-radius:10px;background:linear-gradient(180deg,var(--gold-br),var(--gold) 60%,var(--gold-dp));color:#1a1407}
+
+/* ---------- Hero ---------- */
+.hero{position:relative;text-align:center;padding:52px 18px 44px;overflow:hidden}
+.emblem{width:92px;height:92px;margin:0 auto 20px;position:relative}
+.emblem svg{width:100%;height:100%;color:var(--gold)}
+.poles{position:absolute;inset:0;pointer-events:none;overflow:hidden;opacity:.5}
+.pole{position:absolute;top:0;bottom:0;width:12px;border-radius:7px;overflow:hidden;
+  background:repeating-linear-gradient(45deg,var(--gold) 0 10px,#2a2114 10px 20px);background-size:200% 200%;animation:slide 2.4s linear infinite;opacity:.25}
+.pole.l{left:14px}.pole.r{right:14px}
+@keyframes slide{to{background-position:0 -40px}}
+.hero .sign{font-family:var(--sign);font-weight:400;font-size:62px;line-height:.9;letter-spacing:2px;
+  background:linear-gradient(180deg,#fff,var(--gold-br) 45%,var(--gold-dp));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .tag{font-family:var(--disp);letter-spacing:4px;text-transform:uppercase;font-size:13px;color:var(--cream);margin-top:10px}
+.hero .loc{color:var(--muted);font-size:13px;letter-spacing:2px;text-transform:uppercase;margin-top:7px}
+.cta-row{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:28px}
+.btn{font-family:var(--disp);font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:14px;
+  display:inline-flex;align-items:center;gap:9px;padding:15px 26px;border-radius:13px;border:1px solid var(--line-2);transition:transform .12s}
+.btn svg{width:18px;height:18px}
+.btn:active{transform:scale(.97)}
+.btn.gold{background:linear-gradient(180deg,var(--gold-br),var(--gold) 58%,var(--gold-dp));color:#1a1407;border-color:transparent;box-shadow:0 10px 26px rgba(216,179,94,.22)}
+.btn.ghost{background:var(--panel-2);color:var(--cream)}
+.chips{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.chip{font-size:12px;font-family:var(--disp);letter-spacing:.5px;color:var(--muted);background:var(--panel-2);border:1px solid var(--line);border-radius:999px;padding:7px 14px}
+
+/* ---------- Services ---------- */
+.menu{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:10px 18px;position:relative}
+.menu::after{content:"";position:absolute;inset:0;border-radius:18px;padding:1px;background:linear-gradient(160deg,var(--line-2),transparent 40%);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.srv{display:flex;align-items:baseline;gap:10px;padding:16px 0;border-bottom:1px dashed var(--line)}
+.srv:last-child{border-bottom:0}
+.srv .nm{font-weight:500;font-size:16px}
+.srv .nm small{display:block;color:var(--muted);font-size:12px;font-family:var(--disp);letter-spacing:.5px;margin-top:2px}
+.srv .leader{flex:1;border-bottom:1px dotted var(--faint);transform:translateY(-4px)}
+.srv .pr{font-family:var(--sign);font-size:24px;letter-spacing:1px;color:var(--gold)}
+.note{text-align:center;color:var(--muted);font-size:13px;margin-top:14px}
+.note b{color:var(--gold)}
+
+/* ---------- Features ---------- */
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.feat{background:var(--panel);border:1px solid var(--line);border-radius:15px;padding:18px}
+.feat .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;background:rgba(216,179,94,.12);color:var(--gold);margin-bottom:10px}
+.feat .ic svg{width:21px;height:21px}
+.feat h3{font-family:var(--disp);font-weight:600;font-size:15px;letter-spacing:.3px;margin-bottom:4px}
+.feat p{color:var(--muted);font-size:13.5px;line-height:1.45}
+
+/* ---------- Work emblem ---------- */
+.work{text-align:center}
+.work-art{border:1px solid var(--line);border-radius:18px;background:
+  radial-gradient(500px 240px at 50% 0,rgba(216,179,94,.1),transparent 70%),var(--panel);padding:40px 20px}
+.work-art .tools{width:120px;height:120px;margin:0 auto 14px;color:var(--gold)}
+.work-art .ln{font-family:var(--sign);font-size:30px;letter-spacing:2px}
+.work-art .d{color:var(--muted);font-size:13px;margin-top:4px}
+
+/* ---------- Hours / contact ---------- */
+.info{display:grid;grid-template-columns:1fr;gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px}
+.card h3{font-family:var(--disp);font-weight:600;letter-spacing:1px;text-transform:uppercase;font-size:13px;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:9px}
+.card h3 svg{width:18px;height:18px}
+.hrow{display:flex;justify-content:space-between;padding:7px 0;font-size:14.5px;border-bottom:1px solid var(--line)}
+.hrow:last-child{border-bottom:0}
+.hrow.today{color:var(--gold);font-weight:600}
+.hrow span.day{color:var(--muted)}.hrow.today span.day{color:var(--gold)}
+.addr{font-size:15px;line-height:1.6}
+.maplink{display:inline-flex;align-items:center;gap:8px;margin-top:12px;font-family:var(--disp);font-weight:600;font-size:13px;letter-spacing:.5px;color:var(--gold)}
+.maplink svg{width:17px;height:17px}
+.socials{display:flex;gap:10px;margin-top:14px}
+.socials a{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;background:var(--panel-2);border:1px solid var(--line);color:var(--cream)}
+.socials a svg{width:20px;height:20px}
+
+/* ---------- Final CTA / footer ---------- */
+.final{text-align:center;padding:50px 18px 40px}
+.final h2{margin-bottom:16px}
+footer{text-align:center;color:var(--faint);font-size:12.5px;padding:26px 18px calc(90px + var(--sab));border-top:1px solid var(--line)}
+footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(--cream)}
+
+/* ---------- Sticky mobile book bar ---------- */
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:50;padding:12px 16px calc(12px + var(--sab));
+  background:rgba(15,13,9,.86);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-top:1px solid var(--line-2);
+  display:flex;gap:10px}
+.bar a{flex:1;justify-content:center}
+.bar .wa{flex:none;width:54px;padding:0}
+
+@media(min-width:620px){
+  .hero .sign{font-size:84px}
+  .info{grid-template-columns:1fr 1fr}
+  .bar{display:none}
+  footer{padding-bottom:26px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav class="nav">
+  <div class="brand">
+    <div class="mk">B</div>
+    <div class="nm" id="navName">Barber Birkhadem</div>
+  </div>
+  <a class="book" href="../reservation/">Réserver</a>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="hero">
+  <div class="poles"><div class="pole l"></div><div class="pole r"></div></div>
+  <div class="emblem">
+    <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="16" cy="44" r="6"/><circle cx="16" cy="20" r="6"/>
+      <path d="M21 24 52 50M21 40 52 14"/><circle cx="48" cy="14" r="3"/>
+    </svg>
+  </div>
+  <div class="sign" id="heroName">BARBER BIRKHADEM</div>
+  <div class="tag" id="heroTag">L'art de la coupe & de la barbe</div>
+  <div class="loc" id="heroLoc">Birkhadem · Alger</div>
+  <div class="cta-row">
+    <a class="btn gold" href="../reservation/">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+      Réserver en ligne
+    </a>
+    <a class="btn ghost" id="waTop" target="_blank" rel="noopener">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3Zm0 2a7 7 0 1 1-3.6 13l-.4-.2-2.3.6.6-2.2-.2-.4A7 7 0 0 1 12 5Z"/></svg>
+      WhatsApp
+    </a>
+  </div>
+  <div class="chips">
+    <span class="chip">Au salon ou à domicile</span>
+    <span class="chip">Tous les jours 9h–19h</span>
+    <span class="chip">Réservation en ligne</span>
+  </div>
+</header>
+
+<!-- ===================== SERVICES ===================== -->
+<section class="block"><div class="wrap">
+  <div class="eyebrow">Prestations</div>
+  <h2>Tarifs</h2>
+  <p class="sub">Des coupes nettes, une barbe soignée. Prix clairs, sans surprise.</p>
+  <div class="menu" id="menu"></div>
+  <div class="note" id="homeNote"></div>
+</div></section>
+
+<!-- ===================== POURQUOI ===================== -->
+<section class="block"><div class="wrap">
+  <div class="eyebrow">Pourquoi nous</div>
+  <h2>Ce qui change</h2>
+  <div class="feats" style="margin-top:20px">
+    <div class="feat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M4 10 12 4l8 6v9a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1Z" stroke-linejoin="round"/></svg></div>
+      <h3>Au salon ou à domicile</h3>
+      <p>Venez au salon, ou faites-vous coiffer chez vous — sur simple réservation.</p>
+    </div>
+    <div class="feat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg></div>
+      <h3>Réservation en ligne</h3>
+      <p>Choisissez votre créneau en quelques secondes, sans appeler.</p>
+    </div>
+    <div class="feat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 7v5l3 2" stroke-linecap="round"/><circle cx="12" cy="12" r="9"/></svg></div>
+      <h3>Pas d'attente</h3>
+      <p>Votre heure est réservée : vous passez, on s'occupe de vous.</p>
+    </div>
+    <div class="feat">
+      <div class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.5 8 8 10 4.5-2 8-5 8-10V6Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+      <h3>Un travail net</h3>
+      <p>Dégradés précis, finitions à la tondeuse et au rasoir, hygiène irréprochable.</p>
+    </div>
+  </div>
+</div></section>
+
+<!-- ===================== MON TRAVAIL ===================== -->
+<section class="block"><div class="wrap work">
+  <div class="eyebrow">Le salon</div>
+  <h2>Mon travail</h2>
+  <p class="sub">La passion du détail, coupe après coupe.</p>
+  <div class="work-art">
+    <div class="tools">
+      <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="14" cy="46" r="5"/><circle cx="14" cy="24" r="5"/>
+        <path d="M18 27 50 48M18 43 50 16"/>
+        <path d="M44 44l8 8" /><rect x="40" y="12" width="14" height="5" rx="2.5" transform="rotate(0 40 12)"/>
+      </svg>
+    </div>
+    <div class="ln">L'ART DE LA COUPE</div>
+    <div class="d">Suivez mes dernières réalisations sur Instagram.</div>
+    <a class="btn ghost" id="igBtn" target="_blank" rel="noopener" style="margin-top:16px">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1 .1 1.7.2 2.3.5.6.2 1.1.5 1.6 1 .5.5.8 1 1 1.6.2.6.4 1.3.5 2.3.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c-.1 1-.2 1.7-.5 2.3-.2.6-.5 1.1-1 1.6-.5.5-1 .8-1.6 1-.6.2-1.3.4-2.3.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1-.1-1.7-.2-2.3-.5-.6-.2-1.1-.5-1.6-1-.5-.5-.8-1-1-1.6-.2-.6-.4-1.3-.5-2.3C2 15 2 14.7 2 12s0-3 .1-4.1c.1-1 .2-1.7.5-2.3.2-.6.5-1.1 1-1.6.5-.5 1-.8 1.6-1 .6-.2 1.3-.4 2.3-.5C9 2 9.3 2 12 2Zm0 5.1a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8Zm0 2a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8Zm5.1-3.6a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Z"/></svg>
+      <span id="igLabel">Voir sur Instagram</span>
+    </a>
+  </div>
+</div></section>
+
+<!-- ===================== HORAIRES / CONTACT ===================== -->
+<section class="block"><div class="wrap">
+  <div class="eyebrow">Infos pratiques</div>
+  <h2>Horaires & adresse</h2>
+  <div class="info" style="margin-top:20px">
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>Horaires</h3>
+      <div id="hours"></div>
+    </div>
+    <div class="card">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 21s-6-5.3-6-10a6 6 0 0 1 12 0c0 4.7-6 10-6 10Z"/><circle cx="12" cy="11" r="2.4"/></svg>Adresse</h3>
+      <div class="addr" id="addr"></div>
+      <a class="maplink" id="mapLink" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 20 3 17V4l6 3 6-3 6 3v13l-6-3-6 3Z"/><path d="M9 7v13M15 4v13"/></svg>
+        Voir sur la carte
+      </a>
+      <div class="socials" id="socials"></div>
+    </div>
+  </div>
+</div></section>
+
+<!-- ===================== FINAL CTA ===================== -->
+<section class="final"><div class="wrap">
+  <div class="eyebrow">Votre tour</div>
+  <h2>Prêt pour une bonne coupe ?</h2>
+  <p class="sub">Réservez en ligne en moins d'une minute.</p>
+  <a class="btn gold" href="../reservation/" style="margin-top:4px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+    Prendre rendez-vous
+  </a>
+</div></section>
+
+<footer>
+  <div class="fnm" id="footName">Barber Birkhadem</div>
+  <div style="margin-top:6px" id="footLoc">Birkhadem · Alger</div>
+  <div style="margin-top:10px">© <span id="yr"></span> — Tous droits réservés</div>
+</footer>
+
+<!-- ===================== STICKY BAR (mobile) ===================== -->
+<div class="bar">
+  <a class="btn gold" href="../reservation/">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+    Réserver
+  </a>
+  <a class="btn ghost wa" id="waBar" target="_blank" rel="noopener" aria-label="WhatsApp">
+    <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3Zm0 2a7 7 0 1 1-3.6 13l-.4-.2-2.3.6.6-2.2-.2-.4A7 7 0 0 1 12 5Z"/></svg>
+  </a>
+</div>
+
+<script>
+/* =======================  CONFIG DU SALON  =======================
+   (reprend les mêmes infos que la page de réservation) */
+const SITE = {
+  name: "Barber Birkhadem",
+  tagline: "L'art de la coupe & de la barbe",
+  loc: "Birkhadem · Alger",
+  address: "Birkhadem, Alger",
+  whatsapp: "213563856484",
+  instagram: "gt_barber_birkhadem",
+  mapsQuery: "Barber Birkhadem Birkhadem Alger",
+  home: { enabled: true, fee: 500 },
+  services: [
+    { name: "Coupe",         price: 600, duration: 30 },
+    { name: "Coupe + barbe", price: 900, duration: 45 }
+  ],
+  hours: { // 0 = dimanche … 6 = samedi
+    0:{on:true,open:"09:00",close:"19:00"}, 1:{on:true,open:"09:00",close:"19:00"},
+    2:{on:true,open:"09:00",close:"19:00"}, 3:{on:true,open:"09:00",close:"19:00"},
+    4:{on:true,open:"09:00",close:"19:00"}, 5:{on:true,open:"09:00",close:"19:00"},
+    6:{on:true,open:"09:00",close:"19:00"}
+  }
+};
+/* ================================================================ */
+
+const $=(s)=>document.querySelector(s);
+const money=(n)=>Math.round(n).toLocaleString("fr-FR")+" DA";
+const JOURS=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+
+// Identité
+$("#navName").textContent=SITE.name;
+$("#heroName").textContent=SITE.name.toUpperCase();
+$("#heroTag").textContent=SITE.tagline;
+$("#heroLoc").textContent=SITE.loc;
+$("#footName").textContent=SITE.name;
+$("#footLoc").textContent=SITE.loc;
+$("#addr").textContent=SITE.address;
+$("#yr").textContent=new Date().getFullYear();
+document.title=SITE.name+" — Coiffeur barbier à "+SITE.loc.replace(" · ",", ");
+
+// WhatsApp
+const waUrl = SITE.whatsapp ? ("https://wa.me/"+SITE.whatsapp) : "#";
+$("#waTop").href=waUrl; $("#waBar").href=waUrl;
+if(!SITE.whatsapp){ $("#waTop").style.display="none"; $("#waBar").style.display="none"; }
+
+// Instagram
+if(SITE.instagram){ $("#igBtn").href="https://instagram.com/"+SITE.instagram; $("#igLabel").textContent="@"+SITE.instagram; }
+else { $("#igBtn").style.display="none"; }
+
+// Carte
+$("#mapLink").href="https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(SITE.mapsQuery||SITE.address);
+
+// Réseaux (footer card)
+const soc=[];
+if(SITE.whatsapp) soc.push(`<a href="${waUrl}" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3Zm0 2a7 7 0 1 1-3.6 13l-.4-.2-2.3.6.6-2.2-.2-.4A7 7 0 0 1 12 5Z"/></svg></a>`);
+if(SITE.instagram) soc.push(`<a href="https://instagram.com/${SITE.instagram}" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1 .1 1.7.2 2.3.5.6.2 1.1.5 1.6 1 .5.5.8 1 1 1.6.2.6.4 1.3.5 2.3.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c-.1 1-.2 1.7-.5 2.3-.2.6-.5 1.1-1 1.6-.5.5-1 .8-1.6 1-.6.2-1.3.4-2.3.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1-.1-1.7-.2-2.3-.5-.6-.2-1.1-.5-1.6-1-.5-.5-.8-1-1-1.6-.2-.6-.4-1.3-.5-2.3C2 15 2 14.7 2 12s0-3 .1-4.1c.1-1 .2-1.7.5-2.3.2-.6.5-1.1 1-1.6.5-.5 1-.8 1.6-1 .6-.2 1.3-.4 2.3-.5C9 2 9.3 2 12 2Zm0 5.1a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8Zm0 2a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8Zm5.1-3.6a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Z"/></svg></a>`);
+$("#socials").innerHTML=soc.join("");
+
+// Prestations
+$("#menu").innerHTML=SITE.services.map(s=>`
+  <div class="srv">
+    <div class="nm">${s.name}<small>${s.duration} min</small></div>
+    <div class="leader"></div>
+    <div class="pr">${money(s.price)}</div>
+  </div>`).join("");
+if(SITE.home && SITE.home.enabled){
+  $("#homeNote").innerHTML = SITE.home.fee>0
+    ? `À domicile : supplément déplacement <b>+ ${money(SITE.home.fee)}</b>.`
+    : `Service <b>à domicile</b> disponible.`;
+}
+
+// Horaires
+const todayIdx=new Date().getDay();
+$("#hours").innerHTML=[1,2,3,4,5,6,0].map(i=>{
+  const h=SITE.hours[i];
+  const val = (h&&h.on) ? `${h.open} – ${h.close}` : "Fermé";
+  return `<div class="hrow ${i===todayIdx?"today":""}"><span class="day">${JOURS[i]}</span><span>${val}</span></div>`;
+}).join("");
+</script>
+</body>
+</html>
