@@ -137,6 +137,19 @@ test("caisse : la recherche filtre les prestations", async ({ page }) => {
   await expect(tiles.first()).toBeVisible();
 });
 
+test("coupe idéale : forme du visage → recommandations", async ({ page }) => {
+  await demarrerAvecExemples(page);
+  await page.locator("#goCoupe").click();
+  await expect(page.locator(".page-h .h")).toContainText(/Coupe id/i);
+  await expect(page.locator(".shape-tile")).toHaveCount(6);
+
+  await page.locator('[data-shape="rond"]').click();
+  await expect(page.locator(".reco")).toContainText("Visage rond");
+  await expect(page.locator(".reco")).toContainText("Pompadour");
+  await expect(page.locator(".reco .tag.ok").first()).toBeVisible();
+  await expect(page.locator(".reco .tag.no").first()).toBeVisible();
+});
+
 test("verrouillage : définir un code, verrouiller, déverrouiller", async ({ page }) => {
   await demarrerAvecExemples(page);
 

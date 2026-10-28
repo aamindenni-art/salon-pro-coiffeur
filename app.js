@@ -289,7 +289,7 @@ const NAV = [
   { key: "clients", label: "Clients", icon: "users" },
   { key: "fin", label: "Finances", icon: "wallet" },
 ];
-const VIEWS = { dash: viewDash, rdv: viewRdv, pos: viewPos, clients: viewClients, fin: viewFin, services: viewServices, settings: viewSettings };
+const VIEWS = { dash: viewDash, rdv: viewRdv, pos: viewPos, clients: viewClients, fin: viewFin, services: viewServices, settings: viewSettings, coupe: viewCoupe };
 let route = "dash";
 
 function go(key) { if (location.hash.slice(1) === key) render(); else location.hash = key; }
@@ -358,6 +358,9 @@ function viewDash(c) {
 
     ${bestDay >= 0 && bestVal > 0 ? `<div class="insight"><div class="ic" style="background:var(--accent-soft);color:var(--accent-ink)">${svg("trophy")}</div><div><b>Votre meilleur jour : le ${JOURSL[bestDay]}</b><span>C'est le jour où vous encaissez le plus. Pensez-y pour vos promos et rappels.</span></div></div>` : ""}
 
+    <button class="promo" id="goCoupe"><div class="ic">${svg("sparkle")}</div><div class="grow"><b>Coupe idéale</b><span>Photo du client → la coupe qui lui va</span></div><svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></button>
+
+
     <div class="card"><div class="card-h"><h3>Revenu — 14 jours</h3><span class="mut">${money(rev14Total)}</span></div>
       <div class="card-b"><div class="chart-wrap" style="height:200px"><canvas id="cRev"></canvas></div></div></div>
 
@@ -373,10 +376,97 @@ function viewDash(c) {
       <div class="card-b" style="padding-top:4px"><div class="list">${topClients.map((r) => `<div class="row" data-client="${r.c.id}"><div class="avatar">${initials(r.c.name)}</div><div class="grow"><b>${esc(r.c.name)}</b><span class="sub">${r.v} visite${r.v > 1 ? "s" : ""}</span></div><b class="display" style="color:var(--accent-ink)">${money(r.spend)}</b></div>`).join("")}</div></div></div>` : ""}`;
 
   $("#qnew").onclick = () => go("pos");
+  const gc = $("#goCoupe"); if (gc) gc.onclick = () => go("coupe");
   $("#goRdv").onclick = () => go("rdv");
   $$("[data-client]", c).forEach((el) => el.onclick = () => openClient(el.dataset.client));
   lineChart($("#cRev"), rev14, money);
   donutChart($("#cSvc"), topSvc, "--accent", (v) => v + " fois");
+}
+
+/* ======================= Vue : Coupe idéale ======================= */
+const FACE_SHAPES = [
+  { key: "ovale", name: "Ovale",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><ellipse cx="12" cy="12" rx="6" ry="8.2"/></svg>`,
+    recognize: "Visage équilibré, un peu plus long que large, mâchoire douce. La forme la plus polyvalente.",
+    good: ["Dégradé (fade)", "Undercut", "Pompadour", "Quiff", "Crop texturé", "Raie sur le côté"],
+    avoid: ["Franges qui couvrent tout le front", "Trop de volume déséquilibré"],
+    tip: "Presque tout lui va — garde juste l'équilibre et ne cache pas ce beau visage." },
+  { key: "rond", name: "Rond",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7.4"/></svg>`,
+    recognize: "Largeur ≈ longueur, joues pleines, menton arrondi. Objectif : allonger le visage.",
+    good: ["Pompadour", "Quiff", "Undercut avec volume", "Fade haut (high fade)", "Faux hawk"],
+    avoid: ["Franges droites", "Côtés longs / volume sur les côtés", "Coupe courte uniforme arrondie"],
+    tip: "Du volume et de la hauteur sur le dessus, côtés courts : ça étire le visage." },
+  { key: "carre", name: "Carré",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="5" y="5" width="14" height="14" rx="3.2"/></svg>`,
+    recognize: "Mâchoire marquée et anguleuse, front large. Visage viril et structuré.",
+    good: ["Crop texturé", "Buzz cut", "Raie sur le côté", "Pompadour", "Undercut"],
+    avoid: ["Coupes très carrées qui durcissent encore la mâchoire"],
+    tip: "Assume le côté viril ; un peu de texture sur le dessus adoucit juste ce qu'il faut." },
+  { key: "rectangle", name: "Allongé",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="6.6" y="3.4" width="10.8" height="17.2" rx="4"/></svg>`,
+    recognize: "Visage long et étroit (rectangle). Objectif : ne pas l'allonger davantage.",
+    good: ["Frange (fringe)", "Crop français", "Longueur moyenne", "Un peu de volume sur les côtés"],
+    avoid: ["Trop de hauteur (pompadour très haut)", "Côtés totalement rasés"],
+    tip: "Garde un peu de matière sur les côtés et évite trop de hauteur : ça raccourcit visuellement." },
+  { key: "coeur", name: "Cœur",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 7.6C5 6 7.6 5 12 5s7 1 7 2.6c0 5.8-3.6 10.4-7 12C8.6 18 5 13.4 5 7.6Z"/></svg>`,
+    recognize: "Front large, pommettes hautes, menton fin et pointu. Objectif : équilibrer le bas.",
+    good: ["Frange légère / texturée", "Raie sur le côté", "Longueur moyenne", "Un peu de volume en bas"],
+    avoid: ["Trop de volume en haut", "Undercut extrême", "Dessus très plaqué"],
+    tip: "Adoucis le front avec une frange ou de la texture, et évite d'alourdir le dessus." },
+  { key: "triangle", name: "Triangle",
+    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8.5 5.2C8.5 5 10 4.6 12 4.6s3.5.4 3.5.6c.7 4 2 7 3.7 9.6-2.6 2.7-5.2 3.8-7.2 3.8S7.1 17.5 4.8 14.8C6.5 12.2 7.8 9.2 8.5 5.2Z"/></svg>`,
+    recognize: "Mâchoire large, front plus étroit. Objectif : élargir le haut pour équilibrer.",
+    good: ["Pompadour", "Quiff", "Volume et hauteur sur le dessus", "Côtés plus fournis en haut"],
+    avoid: ["Côtés très rasés en bas (élargit la mâchoire)", "Buzz cut"],
+    tip: "Mets du volume en haut pour rééquilibrer une mâchoire large." },
+];
+let coupePhoto = null, coupeShape = null;
+async function shareText(text, title) {
+  try { if (navigator.share) { await navigator.share({ title, text }); } else { await navigator.clipboard.writeText(text); toast("Copié"); } }
+  catch (e) { if (e.name !== "AbortError") { try { await navigator.clipboard.writeText(text); toast("Copié"); } catch (_) {} } }
+}
+function coupeHelpSheet() {
+  openSheet("Trouver la forme du visage", `
+    <p style="color:var(--muted);line-height:1.6;font-size:14.5px;margin-bottom:12px">Regardez le client <b>de face</b>, cheveux dégagés du visage. Comparez :</p>
+    <div class="list">
+      ${FACE_SHAPES.map((s) => `<div class="row"><div class="avatar" style="background:var(--accent-soft);color:var(--accent-ink)">${s.icon}</div><div class="grow"><b>${s.name}</b><span class="sub" style="white-space:normal">${s.recognize}</span></div></div>`).join("")}
+    </div>
+    <p style="color:var(--muted);line-height:1.6;font-size:13px;margin-top:12px">Astuce : la largeur du front, des pommettes et de la mâchoire + la longueur du visage donnent la forme.</p>`,
+    { footer: `<button class="btn primary block" data-close>J'ai compris</button>` });
+}
+function viewCoupe(c) {
+  c.innerHTML = pageHead("Coupe idéale", "La coupe qui met le client en valeur",
+    `<button class="iconbtn sm" id="coupeHelp" title="Comment trouver la forme ?">${svg("info")}</button>`) + `
+    <div class="card"><div class="card-b">
+      <div class="coupe-photo">${coupePhoto ? `<img src="${coupePhoto}" alt="Client">` : `<div class="ph-empty">${svg("users")}<span>Photo du client, de face, cheveux dégagés</span></div>`}</div>
+      <label class="btn primary block" style="margin-top:12px">${svg("plus")}${coupePhoto ? "Changer la photo" : "Prendre / importer une photo"}
+        <input id="coupeFile" type="file" accept="image/*" capture="environment" hidden></label>
+      ${coupePhoto ? `<button class="btn block" id="coupeClear" style="margin-top:8px">${svg("trash")}Retirer la photo</button>` : ""}
+    </div></div>
+
+    <div class="section-lbl">Forme du visage</div>
+    <div class="shape-grid">${FACE_SHAPES.map((s) => `<button class="shape-tile ${coupeShape === s.key ? "sel" : ""}" data-shape="${s.key}"><span class="sh-ic">${s.icon}</span><b>${s.name}</b></button>`).join("")}</div>
+
+    <div id="recoWrap"></div>`;
+
+  $("#coupeHelp").onclick = coupeHelpSheet;
+  $("#coupeFile").onchange = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { coupePhoto = r.result; viewCoupe(c); }; r.readAsDataURL(f); };
+  const cl = $("#coupeClear"); if (cl) cl.onclick = () => { coupePhoto = null; viewCoupe(c); };
+  $$("[data-shape]", c).forEach((b) => b.onclick = () => { coupeShape = b.dataset.shape; haptic(); viewCoupe(c); });
+
+  const w = $("#recoWrap");
+  const s = FACE_SHAPES.find((x) => x.key === coupeShape);
+  if (!s) { w.innerHTML = `<div class="hint">${svg("sparkle")}<span>Choisissez la forme du visage du client pour voir les coupes conseillées. La photo vous aide à comparer.</span></div>`; return; }
+  w.innerHTML = `<div class="card reco"><div class="card-h"><h3>Visage ${s.name.toLowerCase()}</h3></div><div class="card-b">
+      <p class="reco-desc">${s.recognize}</p>
+      <div class="reco-sec"><div class="reco-t ok">${svg("check")} Coupes qui lui vont</div><div class="tags">${s.good.map((x) => `<span class="tag ok">${x}</span>`).join("")}</div></div>
+      <div class="reco-sec"><div class="reco-t no">${svg("x")} À éviter</div><div class="tags">${s.avoid.map((x) => `<span class="tag no">${x}</span>`).join("")}</div></div>
+      <div class="reco-tip">${svg("sparkle")}<span><b>Le conseil :</b> ${s.tip}</span></div>
+      <button class="btn block" id="coupeShare" style="margin-top:14px">${svg("share")}Partager les conseils</button>
+    </div></div>`;
+  $("#coupeShare").onclick = () => shareText(`Coupe idéale — visage ${s.name.toLowerCase()}\n\n✅ Qui lui vont : ${s.good.join(", ")}\n🚫 À éviter : ${s.avoid.join(", ")}\n\n💡 ${s.tip}\n\n— ${DB.salon.name}`, "Coupe idéale");
 }
 
 /* ======================= Vue : Clients ======================= */
