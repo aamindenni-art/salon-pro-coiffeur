@@ -46,6 +46,22 @@ const ICONS = {
 };
 function svg(name, cls) { return `<svg viewBox="0 0 24 24" ${cls ? `class="${cls}"` : ""} fill="none" aria-hidden="true">${ICONS[name] || ""}</svg>`; }
 
+// Emblème de marque (ciseaux + rasoir + étoile, noir & or). Réutilisé partout :
+// barre du haut, écran de verrouillage, onboarding. id de dégradé unique par appel
+// pour éviter les collisions quand plusieurs emblèmes coexistent dans le DOM.
+let _bmSeq = 0;
+function brandMark(cls) {
+  const g = "bm" + (++_bmSeq);
+  return `<svg ${cls ? `class="${cls}" ` : ""}viewBox="0 0 160 160" aria-hidden="true">
+    <defs><linearGradient id="${g}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0d290"/><stop offset="1" stop-color="#a07d2b"/></linearGradient></defs>
+    <circle cx="80" cy="80" r="62" fill="none" stroke="url(#${g})" stroke-width="1.6" opacity=".55"/>
+    <circle cx="80" cy="80" r="52" fill="none" stroke="url(#${g})" stroke-width=".8" opacity=".35"/>
+    <g transform="translate(80,82) rotate(-50) scale(3.1) translate(-12,-12)" fill="none" stroke="url(#${g})" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.3 7.5 20 18M8.3 16.5 20 6"/></g>
+    <g transform="translate(80,82) rotate(50) scale(3.1) translate(-15,-7)" fill="none" stroke="url(#${g})" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="11" height="4" rx="2"/><path d="M12.6 5.2 L27 3.5 a1.4 1.4 0 0 1 1.1 2.1 L13.4 9"/><circle cx="12.7" cy="7" r=".9" fill="url(#${g})"/></g>
+    <path d="M80 11 l1.8 4.6 4.9.6-3.5 3.3.9 4.8-4.1-2.3-4.1 2.3.9-4.8-3.5-3.3 4.9-.6z" fill="url(#${g})" opacity=".85"/>
+  </svg>`;
+}
+
 /* ======================= Utilitaires ======================= */
 const $ = (s, r = document) => r.querySelector(s);
 const $$ = (s, r = document) => [...r.querySelectorAll(s)];
@@ -298,7 +314,7 @@ function onHash() { const k = location.hash.slice(1); route = VIEWS[k] ? k : "da
 function renderChrome() {
   const dark = isDark();
   $("#brand").textContent = DB.salon.name || "Salon Pro";
-  $("#logo").textContent = initials(DB.salon.name).slice(0, 1) || "S";
+  const lg = $("#logo"); lg.classList.add("has-mark"); lg.innerHTML = brandMark("logo-mark");
   $("#btnTheme").innerHTML = svg(dark ? "sun" : "moon");
   const bl = $("#btnLock"); if (bl) bl.hidden = !DB.salon.pin;
   // nav
@@ -1044,14 +1060,7 @@ function startOnboarding() {
   const draw = () => {
     if (step === 0) {
       root.innerHTML = `<div class="onb"><div class="onb-inner">
-        <svg class="onb-emblem" viewBox="0 0 160 160" aria-hidden="true">
-          <defs><linearGradient id="oe" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f0d290"/><stop offset="1" stop-color="#a07d2b"/></linearGradient></defs>
-          <circle cx="80" cy="80" r="62" fill="none" stroke="url(#oe)" stroke-width="1.6" opacity=".55"/>
-          <circle cx="80" cy="80" r="52" fill="none" stroke="url(#oe)" stroke-width=".8" opacity=".35"/>
-          <g transform="translate(80,82) rotate(-50) scale(3.1) translate(-12,-12)" fill="none" stroke="url(#oe)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.3 7.5 20 18M8.3 16.5 20 6"/></g>
-          <g transform="translate(80,82) rotate(50) scale(3.1) translate(-15,-7)" fill="none" stroke="url(#oe)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="5" width="11" height="4" rx="2"/><path d="M12.6 5.2 L27 3.5 a1.4 1.4 0 0 1 1.1 2.1 L13.4 9"/><circle cx="12.7" cy="7" r=".9" fill="url(#oe)"/></g>
-          <path d="M80 11 l1.8 4.6 4.9.6-3.5 3.3.9 4.8-4.1-2.3-4.1 2.3.9-4.8-3.5-3.3 4.9-.6z" fill="url(#oe)" opacity=".85"/>
-        </svg>
+        ${brandMark("onb-emblem")}
         <h1>Bienvenue sur Salon Pro</h1>
         <p class="lead">L'application pour gérer votre salon : clients, rendez-vous, caisse, finances et rappels — même sans internet, tout reste sur votre téléphone.</p>
         <div class="onb-dots"><i class="on"></i><i></i></div>
@@ -1121,7 +1130,7 @@ function lockNow() { if (!DB.salon.pin) return; appUnlocked = false; haptic(); s
 function showLock() {
   const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "back"];
   $("#lock-root").innerHTML = `<div class="lock"><div class="lock-inner">
-    <div class="lock-logo">${initials(DB.salon.name).slice(0, 1) || "S"}</div>
+    <div class="lock-logo has-mark">${brandMark()}</div>
     <h2>${esc(DB.salon.name || "Salon Pro")}</h2>
     <p>Entrez votre code</p>
     <div class="dots" id="pdots"><i></i><i></i><i></i><i></i></div>
@@ -1172,16 +1181,16 @@ function setPinSheet(onDone) {
 }
 function showRecovery() {
   const root = $("#lock-root");
-  const logo = initials(DB.salon.name).slice(0, 1) || "S";
+  const logo = `<div class="lock-logo has-mark">${brandMark()}</div>`;
   if (!DB.salon.pinQuestion) {
     root.innerHTML = `<div class="lock"><div class="lock-inner">
-      <div class="lock-logo">${logo}</div><h2>Code oublié</h2>
+      ${logo}<h2>Code oublié</h2>
       <p style="text-transform:none;letter-spacing:0;font-family:var(--ff);margin:12px 0 22px;line-height:1.5">Aucune question de récupération n'a été configurée pour ce code. Vous pouvez restaurer une sauvegarde depuis un autre appareil.</p>
       <button class="btn block" id="recBack">Retour</button></div></div>`;
     $("#recBack").onclick = showLock; return;
   }
   root.innerHTML = `<div class="lock"><div class="lock-inner">
-    <div class="lock-logo">${logo}</div><h2>Code oublié</h2>
+    ${logo}<h2>Code oublié</h2>
     <p style="text-transform:none;letter-spacing:0;font-family:var(--ff);margin:12px 0 16px;font-size:16px;color:var(--fg)">${esc(DB.salon.pinQuestion)}</p>
     <input id="recAns" autocomplete="off" placeholder="Votre réponse" style="width:100%;padding:14px;border:1px solid var(--line-2);border-radius:12px;background:var(--surface-2);color:var(--fg);font-size:16px;text-align:center">
     <button class="btn primary block" id="recGo" style="margin-top:12px">${svg("check")}Valider</button>
