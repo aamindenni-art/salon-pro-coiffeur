@@ -422,10 +422,84 @@ const FACE_SHAPES = [
     avoid: ["Côtés très rasés en bas (élargit la mâchoire)", "Buzz cut"],
     tip: "Mets du volume en haut pour rééquilibrer une mâchoire large." },
 ];
-let coupePhoto = null, coupeShape = null;
+let coupePhoto = null, coupeShape = null, coupeAuto = null, coupeBusy = false, faceLandmarker = null;
 async function shareText(text, title) {
   try { if (navigator.share) { await navigator.share({ title, text }); } else { await navigator.clipboard.writeText(text); toast("Copié"); } }
   catch (e) { if (e.name !== "AbortError") { try { await navigator.clipboard.writeText(text); toast("Copié"); } catch (_) {} } }
+}
+
+/* --- Détection automatique de la forme du visage (MediaPipe, sur l'appareil) --- */
+const MP_VER = "0.10.18";
+async function ensureLandmarker() {
+  if (faceLandmarker) return faceLandmarker;
+  const v = await import(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}`);
+  const fileset = await v.FilesetResolver.forVisionTasks(`https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@${MP_VER}/wasm`);
+  faceLandmarker = await v.FaceLandmarker.createFromOptions(fileset, {
+    baseOptions: { modelAssetPath: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" },
+    runningMode: "IMAGE", numFaces: 1,
+  });
+  return faceLandmarker;
+}
+function classifyFace(lm, W, H) {
+  const P = (i) => ({ x: lm[i].x * W, y: lm[i].y * H });
+  const d = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+  const top = P(10), chin = P(152);
+  const fl = P(54), fr = P(284), cl = P(234), cr = P(454), jl = P(172), jr = P(397);
+  const L = d(top, chin), Fw = d(fl, fr), Cw = d(cl, cr), Jw = d(jl, jr);
+  const r = L / Cw, fR = Fw / Cw, jR = Jw / Cw;
+  let shape;
+  if (r >= 1.5) shape = "rectangle";
+  else if (fR > 1.03 && Fw >= Jw) shape = "coeur";
+  else if (jR > 1.0 && Jw > Fw) shape = "triangle";
+  else if (r <= 1.12) shape = (jR > 0.9) ? "carre" : "rond";
+  else shape = "ovale";
+  return { shape, pts: { top, chin, fl, fr, cl, cr, jl, jr } };
+}
+function drawOverlay(img, pts, nW, nH) {
+  const cap = 1000, scale = Math.min(1, cap / Math.max(nW, nH));
+  const cw = Math.round(nW * scale), ch = Math.round(nH * scale);
+  const cv = $("#coupeCanvas"); if (!cv) return;
+  cv.width = cw; cv.height = ch;
+  const g = cv.getContext("2d");
+  g.drawImage(img, 0, 0, cw, ch);
+  const S = (p) => ({ x: p.x * scale, y: p.y * scale });
+  const line = (a, b) => { a = S(a); b = S(b); g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(b.x, b.y); g.stroke(); };
+  g.strokeStyle = "rgba(240,210,144,.95)"; g.fillStyle = "rgba(240,210,144,.95)"; g.lineWidth = Math.max(2, cw * 0.004); g.lineCap = "round";
+  g.shadowColor = "rgba(0,0,0,.5)"; g.shadowBlur = cw * 0.01;
+  line(pts.top, pts.chin); line(pts.fl, pts.fr); line(pts.cl, pts.cr); line(pts.jl, pts.jr);
+  [pts.top, pts.chin, pts.fl, pts.fr, pts.cl, pts.cr, pts.jl, pts.jr].forEach((p) => { p = S(p); g.beginPath(); g.arc(p.x, p.y, Math.max(3, cw * 0.007), 0, 7); g.fill(); });
+  cv.classList.remove("hidden"); const im = $("#coupeImg"); if (im) im.classList.add("hidden");
+}
+async function analyzeFace(c) {
+  if (coupeBusy || !coupePhoto) return; coupeBusy = true;
+  const btn = $("#coupeAnalyze"); if (btn) { btn.disabled = true; btn.innerHTML = svg("sparkle") + "Analyse en cours…"; }
+  try {
+    const img = $("#coupeImg"); if (img && img.decode) await img.decode().catch(() => {});
+    const fl = await ensureLandmarker();
+    const res = fl.detect(img);
+    if (!res || !res.faceLandmarks || !res.faceLandmarks.length) { toast("Visage non détecté — choisissez la forme à la main", "bad"); return; }
+    const nW = img.naturalWidth || img.width, nH = img.naturalHeight || img.height;
+    const out = classifyFace(res.faceLandmarks[0], nW, nH);
+    coupeShape = out.shape; coupeAuto = out.shape;
+    drawOverlay(img, out.pts, nW, nH);
+    haptic(); renderCoupeReco();
+    const w = $("#recoWrap"); if (w) w.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  } catch (e) { console.warn("analyse visage:", e); toast("Analyse indisponible — vérifiez votre connexion", "bad"); }
+  finally { coupeBusy = false; const b = $("#coupeAnalyze"); if (b) { b.disabled = false; b.innerHTML = svg("sparkle") + "Relancer l'analyse"; } }
+}
+function renderCoupeReco() {
+  $$("[data-shape]").forEach((t) => t.classList.toggle("sel", t.dataset.shape === coupeShape));
+  const w = $("#recoWrap"); if (!w) return;
+  const s = FACE_SHAPES.find((x) => x.key === coupeShape);
+  if (!s) { w.innerHTML = `<div class="hint">${svg("sparkle")}<span>Choisissez la forme du visage (ou lancez l'analyse auto) pour voir les coupes conseillées.</span></div>`; return; }
+  w.innerHTML = `<div class="card reco"><div class="card-h"><h3>Visage ${s.name.toLowerCase()}</h3>${coupeAuto === s.key ? `<span class="pill good">${svg("sparkle")} Détecté</span>` : ""}</div><div class="card-b">
+      <p class="reco-desc">${s.recognize}</p>
+      <div class="reco-sec"><div class="reco-t ok">${svg("check")} Coupes qui lui vont</div><div class="tags">${s.good.map((x) => `<span class="tag ok">${x}</span>`).join("")}</div></div>
+      <div class="reco-sec"><div class="reco-t no">${svg("x")} À éviter</div><div class="tags">${s.avoid.map((x) => `<span class="tag no">${x}</span>`).join("")}</div></div>
+      <div class="reco-tip">${svg("sparkle")}<span><b>Le conseil :</b> ${s.tip}</span></div>
+      <button class="btn block" id="coupeShare" style="margin-top:14px">${svg("share")}Partager les conseils</button>
+    </div></div>`;
+  const sh = $("#coupeShare"); if (sh) sh.onclick = () => shareText(`Coupe idéale — visage ${s.name.toLowerCase()}\n\n✅ Qui lui vont : ${s.good.join(", ")}\n🚫 À éviter : ${s.avoid.join(", ")}\n\n💡 ${s.tip}\n\n— ${DB.salon.name}`, "Coupe idéale");
 }
 function coupeHelpSheet() {
   openSheet("Trouver la forme du visage", `
@@ -440,10 +514,12 @@ function viewCoupe(c) {
   c.innerHTML = pageHead("Coupe idéale", "La coupe qui met le client en valeur",
     `<button class="iconbtn sm" id="coupeHelp" title="Comment trouver la forme ?">${svg("info")}</button>`) + `
     <div class="card"><div class="card-b">
-      <div class="coupe-photo">${coupePhoto ? `<img src="${coupePhoto}" alt="Client">` : `<div class="ph-empty">${svg("users")}<span>Photo du client, de face, cheveux dégagés</span></div>`}</div>
-      <label class="btn primary block" style="margin-top:12px">${svg("plus")}${coupePhoto ? "Changer la photo" : "Prendre / importer une photo"}
-        <input id="coupeFile" type="file" accept="image/*" capture="environment" hidden></label>
-      ${coupePhoto ? `<button class="btn block" id="coupeClear" style="margin-top:8px">${svg("trash")}Retirer la photo</button>` : ""}
+      <div class="coupe-photo">${coupePhoto ? `<img src="${coupePhoto}" alt="Client" id="coupeImg"><canvas id="coupeCanvas" class="hidden"></canvas>` : `<div class="ph-empty">${svg("users")}<span>Photo du client, de face, cheveux dégagés</span></div>`}</div>
+      ${coupePhoto ? `<button class="btn primary block" id="coupeAnalyze" style="margin-top:12px">${svg("sparkle")}Analyser le visage (auto)</button>
+        <div class="coupe-note">Estimation automatique — ajustez la forme si besoin.</div>
+        <label class="btn block" style="margin-top:8px">${svg("edit")}Changer la photo<input id="coupeFile" type="file" accept="image/*" capture="environment" hidden></label>
+        <button class="btn block" id="coupeClear" style="margin-top:8px">${svg("trash")}Retirer la photo</button>`
+      : `<label class="btn primary block" style="margin-top:12px">${svg("plus")}Prendre / importer une photo<input id="coupeFile" type="file" accept="image/*" capture="environment" hidden></label>`}
     </div></div>
 
     <div class="section-lbl">Forme du visage</div>
@@ -452,21 +528,11 @@ function viewCoupe(c) {
     <div id="recoWrap"></div>`;
 
   $("#coupeHelp").onclick = coupeHelpSheet;
-  $("#coupeFile").onchange = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { coupePhoto = r.result; viewCoupe(c); }; r.readAsDataURL(f); };
-  const cl = $("#coupeClear"); if (cl) cl.onclick = () => { coupePhoto = null; viewCoupe(c); };
-  $$("[data-shape]", c).forEach((b) => b.onclick = () => { coupeShape = b.dataset.shape; haptic(); viewCoupe(c); });
-
-  const w = $("#recoWrap");
-  const s = FACE_SHAPES.find((x) => x.key === coupeShape);
-  if (!s) { w.innerHTML = `<div class="hint">${svg("sparkle")}<span>Choisissez la forme du visage du client pour voir les coupes conseillées. La photo vous aide à comparer.</span></div>`; return; }
-  w.innerHTML = `<div class="card reco"><div class="card-h"><h3>Visage ${s.name.toLowerCase()}</h3></div><div class="card-b">
-      <p class="reco-desc">${s.recognize}</p>
-      <div class="reco-sec"><div class="reco-t ok">${svg("check")} Coupes qui lui vont</div><div class="tags">${s.good.map((x) => `<span class="tag ok">${x}</span>`).join("")}</div></div>
-      <div class="reco-sec"><div class="reco-t no">${svg("x")} À éviter</div><div class="tags">${s.avoid.map((x) => `<span class="tag no">${x}</span>`).join("")}</div></div>
-      <div class="reco-tip">${svg("sparkle")}<span><b>Le conseil :</b> ${s.tip}</span></div>
-      <button class="btn block" id="coupeShare" style="margin-top:14px">${svg("share")}Partager les conseils</button>
-    </div></div>`;
-  $("#coupeShare").onclick = () => shareText(`Coupe idéale — visage ${s.name.toLowerCase()}\n\n✅ Qui lui vont : ${s.good.join(", ")}\n🚫 À éviter : ${s.avoid.join(", ")}\n\n💡 ${s.tip}\n\n— ${DB.salon.name}`, "Coupe idéale");
+  $("#coupeFile").onchange = (e) => { const f = e.target.files && e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { coupePhoto = r.result; coupeAuto = null; viewCoupe(c); }; r.readAsDataURL(f); };
+  const cl = $("#coupeClear"); if (cl) cl.onclick = () => { coupePhoto = null; coupeAuto = null; coupeShape = null; viewCoupe(c); };
+  const an = $("#coupeAnalyze"); if (an) an.onclick = () => analyzeFace(c);
+  $$("[data-shape]", c).forEach((b) => b.onclick = () => { coupeShape = b.dataset.shape; coupeAuto = null; haptic(); renderCoupeReco(); });
+  renderCoupeReco();
 }
 
 /* ======================= Vue : Clients ======================= */

@@ -150,6 +150,17 @@ test("coupe idéale : forme du visage → recommandations", async ({ page }) => 
   await expect(page.locator(".reco .tag.no").first()).toBeVisible();
 });
 
+test("coupe idéale : importer une photo propose l'analyse automatique", async ({ page }) => {
+  await demarrerAvecExemples(page);
+  await page.locator("#goCoupe").click();
+  // petite image PNG 1×1 (suffit pour l'état « photo chargée »)
+  const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64");
+  await page.setInputFiles("#coupeFile", { name: "client.png", mimeType: "image/png", buffer: png });
+  await expect(page.locator("#coupeAnalyze")).toBeVisible();   // bouton d'analyse auto
+  await expect(page.locator("#coupeImg")).toBeVisible();
+  await expect(page.locator("#coupeClear")).toBeVisible();
+});
+
 test("verrouillage : définir un code, verrouiller, déverrouiller", async ({ page }) => {
   await demarrerAvecExemples(page);
 

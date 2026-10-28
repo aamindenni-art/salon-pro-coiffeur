@@ -398,6 +398,8 @@ a{color:var(--accent-ink)}
 /* ---------- Module Coupe idéale ---------- */
 .coupe-photo{border-radius:14px;overflow:hidden;background:var(--surface-2);border:1px solid var(--line);aspect-ratio:4/5;max-height:46vh;display:grid;place-items:center}
 .coupe-photo img{width:100%;height:100%;object-fit:cover}
+.coupe-photo canvas{width:100%;height:100%;object-fit:contain;background:var(--surface-2)}
+.coupe-note{text-align:center;color:var(--muted);font-size:12px;margin-top:8px}
 .ph-empty{display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--muted);text-align:center;padding:24px}
 .ph-empty svg{width:40px;height:40px;opacity:.6}
 .ph-empty span{font-size:13px;max-width:200px}
