@@ -123,6 +123,13 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
   font-family:var(--disp);font-weight:500;letter-spacing:.5px;cursor:pointer;color:var(--cream)}
 .slot.sel{border-color:transparent;background:linear-gradient(180deg,var(--gold-br),var(--gold-dp));color:#1a1407}
 .slot.off{opacity:.3;pointer-events:none}
+.slot.taken{opacity:.55;position:relative}
+.slot.taken small{display:block;font-size:9px;letter-spacing:.5px;text-transform:uppercase;color:var(--gold);opacity:.8;margin-top:1px}
+.done{text-align:center;padding:26px 16px}
+.done-ic{width:62px;height:62px;border-radius:50%;margin:0 auto 14px;display:grid;place-items:center;color:#1a1407;background:linear-gradient(180deg,var(--gold-br),var(--gold-dp))}
+.done-ic svg{width:30px;height:30px}
+.done h3{font-family:var(--sign,"Bebas Neue");font-weight:400;font-size:26px;letter-spacing:1px;margin:0 0 8px}
+.done p{color:var(--muted,#b7ad98);line-height:1.5;font-size:15px}
 .field{margin-bottom:12px}
 .field label{display:block;font-family:var(--disp);letter-spacing:1px;text-transform:uppercase;font-size:11.5px;color:var(--muted);margin-bottom:6px}
 .field input{width:100%;padding:14px;border:1px solid var(--line-2);border-radius:12px;background:var(--ink-2);color:var(--cream);font-size:16px}
@@ -303,6 +310,11 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
         <button id="cta" class="cta" disabled>Choisir un créneau</button>
         <div class="cta-note" id="ctaNote">Votre demande sera confirmée par le salon.</div>
       </div>
+      <div id="done" class="done hidden">
+        <div class="done-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></div>
+        <h3>Demande envoyée ✓</h3>
+        <p id="doneTxt"></p>
+      </div>
     </div>
     <div class="hours" style="margin-top:18px">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2" stroke-linecap="round"/></svg>
@@ -347,6 +359,14 @@ const SALON = {
   ],
   hoursText: "Ouvert tous les jours · 9h – 19h"
 };
+
+/* ===== Réservation en ligne automatique (Supabase) =========
+   Laissez vide = mode « demande WhatsApp » (comme avant).
+   Remplissez les 2 valeurs = les créneaux pris se bloquent tout seuls. */
+const SUPABASE = {
+  url: "",      // <-- https://xxxx.supabase.co
+  anonKey: "",  // <-- clé "anon public"
+};
 /* ============================================================ */
 
 const $ = (s)=>document.querySelector(s);
@@ -357,7 +377,32 @@ const MOISL=["janvier","février","mars","avril","mai","juin","juillet","août",
 const money=(n)=>Math.round(n).toLocaleString("fr-FR")+" DA";
 const pad=(n)=>String(n).padStart(2,"0");
 const isoD=(d)=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const toMin=(hhmm)=>{const [h,m]=String(hhmm).split(":").map(Number);return h*60+(m||0);};
 let sel={svc:null,date:null,time:null};
+
+/* ---- Réservation automatique : créneaux déjà pris ---- */
+const ONLINE = !!(SUPABASE.url && SUPABASE.anonKey);
+let sb=null, busy={};          // busy[date] = [{start:minutes, dur:minutes}, ...]
+async function initOnline(){
+  if(!ONLINE) return;
+  try{
+    const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
+    sb = createClient(SUPABASE.url, SUPABASE.anonKey);
+    await loadBusy();
+    if(sel.date) buildSlots();   // rafraîchir si un jour est déjà choisi
+  }catch(e){ console.warn("Réservation en ligne indisponible :", e); sb=null; }
+}
+async function loadBusy(){
+  if(!sb) return;
+  const { data, error } = await sb.from("busy_slots").select('date,"time",duration').gte("date", isoD(new Date()));
+  if(error){ console.warn(error); return; }
+  busy={};
+  (data||[]).forEach(r=>{ (busy[r.date]=busy[r.date]||[]).push({start:toMin(r.time), dur:r.duration||30}); });
+}
+function slotTaken(date, startMin, dur){
+  const list = busy[date]||[];
+  return list.some(b => startMin < b.start + b.dur && b.start < startMin + dur);
+}
 
 // En-tête / identité
 $("#sign").textContent = SALON.name.toUpperCase();
@@ -443,8 +488,10 @@ function buildSlots(){
   const minTs=Date.now()+SALON.leadHours*3600*1000; const out=[];
   for(let t=oh*60+om; t+dur<=end; t+=SALON.slotMinutes){
     const label=`${pad(Math.floor(t/60))}:${pad(t%60)}`;
-    const off=new Date(sel.date+"T"+label).getTime()<minTs;
-    out.push(`<button class="slot ${off?"off":""}" data-slot="${label}">${label}</button>`);
+    const past=new Date(sel.date+"T"+label).getTime()<minTs;
+    const taken=slotTaken(sel.date, t, dur);
+    const off=past||taken;
+    out.push(`<button class="slot ${off?"off":""} ${taken?"taken":""}" data-slot="${label}">${label}${taken?'<small>pris</small>':''}</button>`);
   }
   $("#slotGrid").innerHTML = out.join("") || `<div class="needsvc" style="grid-column:1/-1">Pas de créneau ce jour-là.</div>`;
   document.querySelectorAll("[data-slot]").forEach(b=>b.onclick=()=>{
@@ -472,18 +519,55 @@ function update(){
   note.textContent = SALON.whatsapp ? "Votre demande part sur le WhatsApp du salon ; il vous confirmera." : "Démo : configurez le numéro WhatsApp.";
 }
 $("#cName").oninput=update; $("#cPhone").oninput=update;
-$("#cta").onclick=()=>{
-  const name=$("#cName").value.trim(), phone=$("#cPhone").value.trim();
-  if(!sel.svc||!sel.time||!name||!phone) return;
-  const d=new Date(sel.date+"T00:00");
+function whatsappOut(name,phone,d){
   const msg=`Bonjour ${SALON.name}, je souhaite réserver :\n`+
     `• ${sel.svc.name} (${sel.svc.duration} min) — ${money(sel.svc.price)}\n`+
     `• ${JOURSL[d.getDay()]} ${d.getDate()} ${MOISL[d.getMonth()]} à ${sel.time}\n\n`+
     `Nom : ${name}\nTéléphone : ${phone}\n\nMerci de me confirmer. 🙏`;
+  if(SALON.whatsapp) window.location.href="https://wa.me/"+SALON.whatsapp+"?text="+encodeURIComponent(msg);
+}
+$("#cta").onclick=async ()=>{
+  const name=$("#cName").value.trim(), phone=$("#cPhone").value.trim();
+  if(!sel.svc||!sel.time||!name||!phone) return;
+  const d=new Date(sel.date+"T00:00");
+  const cta=$("#cta");
+
+  // Mode en ligne : on enregistre la réservation (le créneau se bloque).
+  if(sb){
+    const startMin=toMin(sel.time), dur=sel.svc.duration||SALON.slotMinutes;
+    cta.disabled=true; const old=cta.innerHTML; cta.textContent="Enregistrement…";
+    try{
+      await loadBusy();                                   // dernière vérif anti-collision
+      if(slotTaken(sel.date,startMin,dur)){
+        buildSlots(); sel.time=null; update();
+        alert("Désolé, ce créneau vient d'être pris. Choisissez-en un autre 🙏");
+        cta.innerHTML=old; return;
+      }
+      const { error } = await sb.from("appointments").insert({
+        date:sel.date, time:sel.time, duration:dur,
+        service_name:sel.svc.name, price:sel.svc.price,
+        client_name:name, client_phone:phone, status:"pending"
+      });
+      if(error) throw error;
+      (busy[sel.date]=busy[sel.date]||[]).push({start:startMin,dur});   // blocage immédiat
+      $("#booking").classList.add("hidden");
+      $("#done").classList.remove("hidden");
+      $("#doneTxt").innerHTML=`Votre demande pour <b>${JOURSL[d.getDay()]} ${d.getDate()} ${MOISL[d.getMonth()]} à ${sel.time}</b> est bien envoyée.<br>Le salon vous confirmera.`;
+      $("#done").scrollIntoView({behavior:"smooth",block:"center"});
+      whatsappOut(name,phone,d);                          // on prévient aussi le salon
+      return;
+    }catch(e){
+      console.warn(e); cta.disabled=false; cta.innerHTML=old;
+      // en cas de souci réseau, on bascule sur la demande WhatsApp
+    }
+  }
+
+  // Mode « demande WhatsApp » (sans base en ligne)
   if(!SALON.whatsapp){alert("Démo : numéro WhatsApp non configuré.");return;}
-  window.location.href="https://wa.me/"+SALON.whatsapp+"?text="+encodeURIComponent(msg);
+  whatsappOut(name,phone,d);
 };
 update();
+initOnline();
 </script>
 </body>
 </html>
