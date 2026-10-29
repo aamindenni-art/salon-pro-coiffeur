@@ -480,8 +480,6 @@ function viewDash(c) {
 
   const rev14 = []; for (let i = 13; i >= 0; i--) { const d = isoDate(addDays(new Date(), -i)); rev14.push({ label: `${parseD(d).getDate()}/${parseD(d).getMonth() + 1}`, value: revenueOn(d) }); }
   const rev14Total = rev14.reduce((s, x) => s + x.value, 0);
-  const tally = {}; DB.sales.forEach((v) => v.items.forEach((it) => tally[it.name] = (tally[it.name] || 0) + it.qty));
-  const topSvc = Object.entries(tally).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([label, value]) => ({ label, value }));
   const topClients = DB.clients.map((c) => ({ c, spend: clientSpend(c.id), v: clientVisits(c.id) })).filter((r) => r.spend > 0).sort((a, b) => b.spend - a.spend).slice(0, 5);
 
   const kpi = (lab, val, icon, delta, cls = "") => `<div class="kpi"><div class="top"><div class="lab">${lab}</div><div class="ic">${svg(icon)}</div></div><div class="val ${cls}">${val}</div>${delta ? `<div class="delta">${delta}</div>` : ""}</div>`;
@@ -507,8 +505,6 @@ function viewDash(c) {
     <div class="card"><div class="card-h"><h3>Revenu — 14 jours</h3><span class="mut">${money(rev14Total)}</span></div>
       <div class="card-b"><div class="chart-wrap" style="height:200px"><canvas id="cRev"></canvas></div></div></div>
 
-    ${topSvc.length ? `<div class="card"><div class="card-h"><h3>Prestations populaires</h3></div><div class="card-b"><div class="chart-wrap" style="height:230px"><canvas id="cSvc"></canvas></div></div></div>` : ""}
-
     <div class="card"><div class="card-h"><h3>Rendez-vous du jour</h3><button class="btn sm ghost" id="goRdv">Agenda</button></div>
       <div class="card-b" style="padding-top:4px">${todayRdv.length ? `<div class="list">${todayRdv.map((r) => {
         const names = r.serviceIds.map((id) => serviceById(id)?.name).filter(Boolean).join(", ");
@@ -525,7 +521,6 @@ function viewDash(c) {
   $("#goRdv").onclick = () => go("rdv");
   $$("[data-client]", c).forEach((el) => el.onclick = () => openClient(el.dataset.client));
   lineChart($("#cRev"), rev14, money);
-  donutChart($("#cSvc"), topSvc, "--accent", (v) => v + " fois");
 }
 
 /* ======================= Vue : Coupe idéale ======================= */
