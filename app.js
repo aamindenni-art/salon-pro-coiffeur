@@ -72,6 +72,7 @@ function svcIcon(name, category) {
 // Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
 // comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
 // fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
+const APP_VERSION = "v29";
 const ONLINE_DEFAULT = { url: "https://uzwbkjpjznduyftkwyrs.supabase.co", anonKey: "sb_publishable_fjvm2tQu1smKQT84-HltqQ_RJ0jW19G" };
 function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
 function onlineOn() { const c = onlineCfg(); return !!(c.url && c.anonKey && c.secret); }
@@ -1184,7 +1185,10 @@ function viewSettings(c) {
       </div></div></div>
 
     <div id="installCard"></div>
-    <div style="text-align:center;color:var(--faint);font-size:12px;margin:18px 0 4px">Salon Pro · application pour coiffeur · 100% sur votre téléphone</div>`;
+    <div style="text-align:center;margin:18px 0 4px">
+      <button class="btn sm" id="forceUpd">${svg("download")}Mettre à jour l'application</button>
+      <div style="color:var(--faint);font-size:12px;margin-top:10px">Salon Pro · ${APP_VERSION} · 100% sur votre téléphone</div>
+    </div>`;
 
   $("#saveSalon").onclick = () => { s.name = $("#s_name").value.trim() || "Mon salon"; s.currency = $("#s_cur").value.trim() || "DA"; s.phone = $("#s_phone").value.trim(); s.address = $("#s_addr").value.trim(); save(); render(); toast("Enregistré"); };
   $("#saveMsg").onclick = () => { s.reminderTemplate = $("#s_tmpl").value; s.receiptFooter = $("#s_foot").value.trim(); s.defaultDuration = Number($("#s_dur").value) || 30; save(); toast("Enregistré"); };
@@ -1207,6 +1211,14 @@ function viewSettings(c) {
     toast(onlineErr ? "Échec : " + onlineErr : `OK — ${onlineBookings.length} réservation(s) lue(s)`, onlineErr ? "bad" : "good");
   };
   const oh = $("#onHelp"); if (oh) oh.onclick = (e) => { e.preventDefault(); onlineHelpSheet(); };
+  $("#forceUpd").onclick = async () => {
+    toast("Mise à jour en cours…");
+    try {
+      if ("serviceWorker" in navigator) { const rs = await navigator.serviceWorker.getRegistrations(); await Promise.all(rs.map((r) => r.unregister())); }
+      if (window.caches) { const ks = await caches.keys(); await Promise.all(ks.map((k) => caches.delete(k))); }
+    } catch (e) {}
+    setTimeout(() => location.reload(), 350);   // recharge depuis le réseau (données conservées)
+  };
   $("#backup").onclick = shareOrDownloadBackup;
   $("#copybk").onclick = async () => { try { await navigator.clipboard.writeText(backupText()); toast("Sauvegarde copiée"); } catch (e) { restoreSheet(true); } };
   $("#restore").onclick = () => restoreSheet();
