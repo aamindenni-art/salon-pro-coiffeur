@@ -72,7 +72,7 @@ function svcIcon(name, category) {
 // Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
 // comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
 // fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
-const APP_VERSION = "v29";
+const APP_VERSION = "v30";
 const ONLINE_DEFAULT = { url: "https://uzwbkjpjznduyftkwyrs.supabase.co", anonKey: "sb_publishable_fjvm2tQu1smKQT84-HltqQ_RJ0jW19G" };
 function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
 function onlineOn() { const c = onlineCfg(); return !!(c.url && c.anonKey && c.secret); }
@@ -1097,8 +1097,6 @@ function serviceForm(id) {
 function viewFin(c) {
   const mk = monthKey(today());
   const rev = revenueMonth(mk), exp = expenseMonth(mk), profit = rev - exp, margin = rev ? Math.round(profit / rev * 100) : 0;
-  const expByCat = {}; DB.expenses.forEach((e) => expByCat[e.category] = (expByCat[e.category] || 0) + Number(e.amount));
-  const donut = Object.entries(expByCat).sort((a, b) => b[1] - a[1]).map(([label, value]) => ({ label, value }));
   const months = []; const now = new Date();
   for (let i = 5; i >= 0; i--) { const d = new Date(now.getFullYear(), now.getMonth() - i, 1); const k = isoDate(d).slice(0, 7); months.push({ label: MOIS[d.getMonth()], rev: revenueMonth(k), exp: expenseMonth(k) }); }
   const kpi = (l, v, sub, cls) => `<div class="kpi"><div class="lab">${l}</div><div class="val sm ${cls || ""}">${v}</div><div class="delta">${sub}</div></div>`;
@@ -1110,12 +1108,10 @@ function viewFin(c) {
       ${kpi("Marge", margin + "%", profit >= 0 ? "Rentable" : "En perte", profit >= 0 ? "up" : "down")}
     </div>
     <div class="card"><div class="card-h"><h3>Revenus vs charges</h3><span class="mut">6 mois</span></div><div class="card-b"><div class="chart-wrap" style="height:220px"><canvas id="cBars"></canvas></div></div></div>
-    <div class="card"><div class="card-h"><h3>Répartition des charges</h3></div><div class="card-b"><div class="chart-wrap" style="height:230px"><canvas id="cDep"></canvas></div></div></div>
     <div class="card"><div class="card-h"><h3>Charges & dépenses</h3></div><div class="card-b" style="padding-top:4px">${DB.expenses.length ? `<div class="list">${DB.expenses.slice().sort((a, b) => b.date.localeCompare(a.date)).map((e) => `<div class="row" data-edit="${e.id}"><div class="grow"><b>${esc(e.label)}</b><span class="sub"><span class="pill mut" style="font-size:10px">${esc(e.category)}</span> ${fmtD(e.date)}</span></div><b class="display num" style="color:var(--bad)">− ${money(e.amount)}</b></div>`).join("")}</div>` : emptyState("wallet", "Aucune charge", "Ajoutez vos dépenses (loyer, produits…).")}</div></div>`;
   $("#add").onclick = () => expenseForm();
   $$("[data-edit]", c).forEach((el) => el.onclick = () => expenseForm(el.dataset.edit));
   barsChart($("#cBars"), months);
-  donutChart($("#cDep"), donut, "--bad", money);
 }
 function expenseForm(id) {
   const e = id ? DB.expenses.find((x) => x.id === id) : null;
