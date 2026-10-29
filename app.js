@@ -807,19 +807,35 @@ function rdvRow(r) {
 }
 function rdvForm(id) {
   const r = id ? DB.appointments.find((x) => x.id === id) : null;
-  if (!DB.clients.length) { toast("Ajoutez d'abord un client", "info"); go("clients"); return; }
+  const hasClients = DB.clients.length > 0;
+  const startNew = !r && !hasClients;            // aucun client → direct en mode « nouveau »
   const clientOpts = DB.clients.map((c) => `<option value="${c.id}" ${r?.clientId === c.id ? "selected" : ""}>${esc(c.name)}</option>`).join("");
   const svcChecks = DB.services.length ? DB.services.map((s) => `<label class="check"><input type="checkbox" value="${s.id}" ${r?.serviceIds?.includes(s.id) ? "checked" : ""}><span class="grow">${esc(s.name)}</span><b class="display" style="color:var(--accent-ink)">${money(s.price)}</b></label>`).join("") : `<div class="field hint">Aucune prestation — ajoutez-en dans Réglages → Services.</div>`;
   openSheet(r ? "Modifier le rendez-vous" : "Nouveau rendez-vous", `
-    <div class="field"><label>Client *</label><select id="f_client"><option value="">— Choisir —</option>${clientOpts}</select></div>
+    <div class="field"><label>Client *</label><select id="f_client">
+      <option value="__new__" ${startNew ? "selected" : ""}>➕ Nouveau client</option>
+      ${hasClients ? `<option value="" ${!startNew && !r ? "selected" : ""}>— Choisir un client —</option>${clientOpts}` : ""}
+    </select></div>
+    <div id="f_newcli" class="${startNew ? "" : "hidden"}"><div class="row2">
+      <div class="field"><label>Nom du client *</label><input id="f_cname" placeholder="Ex : Karim" autocomplete="off"></div>
+      <div class="field"><label>Téléphone</label><input id="f_cphone" type="tel" placeholder="0661 ..." autocomplete="off"></div></div></div>
     <div class="row2"><div class="field"><label>Date *</label><input type="date" id="f_date" value="${r?.date || today()}"></div>
       <div class="field"><label>Heure *</label><input type="time" id="f_time" value="${r?.time || "10:00"}"></div></div>
-    <div class="field"><label>Prestations</label><div style="max-height:36vh;overflow:auto">${svcChecks}</div></div>
-    <div class="field"><label>Statut</label><select id="f_status">${Object.keys(STATUS).map((s) => `<option value="${s}" ${r?.status === s ? "selected" : ""}>${STATUS[s][1]}</option>`).join("")}</select></div>`, {
+    <div class="field"><label>Prestations</label><div style="max-height:30vh;overflow:auto">${svcChecks}</div></div>
+    <div class="field"><label>Statut</label><select id="f_status">${Object.keys(STATUS).map((s) => `<option value="${s}" ${(r?.status || "confirme") === s ? "selected" : ""}>${STATUS[s][1]}</option>`).join("")}</select></div>`, {
     footer: `${r ? `<button class="btn danger" data-del>${svg("trash")}</button>` : ""}<button class="btn primary" data-save>${svg("check")}Enregistrer</button>`,
     onMount(root) {
+      const sel = $("#f_client", root);
+      sel.onchange = () => $("#f_newcli", root).classList.toggle("hidden", sel.value !== "__new__");
       $("[data-save]", root).onclick = () => {
-        const clientId = $("#f_client").value; if (!clientId) { toast("Choisissez un client", "bad"); return; }
+        let clientId = sel.value;
+        if (clientId === "__new__") {
+          const name = $("#f_cname", root).value.trim();
+          if (!name) { toast("Indiquez le nom du client", "bad"); $("#f_cname", root).focus(); return; }
+          const cl = { id: uid(), createdAt: today(), name, phone: $("#f_cphone", root).value.trim(), email: "", notes: "" };
+          DB.clients.push(cl); clientId = cl.id;
+        }
+        if (!clientId) { toast("Choisissez un client", "bad"); return; }
         const serviceIds = $$(".sheet-b input[type=checkbox]:checked", root).map((x) => x.value);
         const data = { clientId, date: $("#f_date").value, time: $("#f_time").value, serviceIds, status: $("#f_status").value };
         if (r) { if (data.date !== r.date || data.time !== r.time) r.reminded = false; Object.assign(r, data); }
