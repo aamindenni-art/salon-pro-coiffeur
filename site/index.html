@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Barber Birkhadem — Coiffeur barbier à Birkhadem, Alger</title>
-<meta name="description" content="Barber Birkhadem — coupe & barbe à Birkhadem, Alger. Réservez en ligne, au salon ou à domicile. Ouvert tous les jours 9h–19h.">
+<title>Coiffeur barbier</title>
+<meta name="description" content="Coupe & barbe. Réservez en ligne, au salon ou à domicile.">
 <meta name="theme-color" content="#100f0b">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -141,6 +141,7 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
   footer{padding-bottom:26px}
 }
 </style>
+<script src="../config.js"></script>
 </head>
 <body>
 
@@ -148,7 +149,7 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
 <nav class="nav">
   <div class="brand">
     <div class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><path d="M8.2 7.5 20 18M8.2 16.5 20 6"/></svg></div>
-    <div class="nm" id="navName">Barber Birkhadem</div>
+    <div class="nm" id="navName">Salon</div>
   </div>
   <a class="book" href="../reservation/">Réserver</a>
 </nav>
@@ -162,7 +163,7 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
       <path d="M21 24 52 50M21 40 52 14"/><circle cx="48" cy="14" r="3"/>
     </svg>
   </div>
-  <div class="sign" id="heroName">BARBER BIRKHADEM</div>
+  <div class="sign" id="heroName">SALON</div>
   <div class="tag" id="heroTag">L'art de la coupe & de la barbe</div>
   <div class="loc" id="heroLoc">Birkhadem · Alger</div>
   <div class="cta-row">
@@ -275,7 +276,7 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
 </div></section>
 
 <footer>
-  <div class="fnm" id="footName">Barber Birkhadem</div>
+  <div class="fnm" id="footName">Salon</div>
   <div style="margin-top:6px" id="footLoc">Birkhadem · Alger</div>
   <div style="margin-top:10px">© <span id="yr"></span> — Tous droits réservés</div>
 </footer>
@@ -294,14 +295,15 @@ footer .fnm{font-family:var(--sign);font-size:20px;letter-spacing:1px;color:var(
 <script>
 /* =======================  CONFIG DU SALON  =======================
    (reprend les mêmes infos que la page de réservation) */
+const C = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const SITE = {
-  name: "Barber Birkhadem",
-  tagline: "L'art de la coupe & de la barbe",
-  loc: "Birkhadem · Alger",
-  address: "Birkhadem, Alger",
-  whatsapp: "213563856484",
-  instagram: "gt_barber_birkhadem",
-  mapsQuery: "Barber Birkhadem Birkhadem Alger",
+  name: C.salonName || "Mon salon",
+  tagline: C.tagline || "Coupe & barbe",
+  loc: C.location || "",
+  address: C.address || "",
+  whatsapp: C.whatsapp || "",
+  instagram: C.instagram || "",
+  mapsQuery: (C.salonName || "") + " " + (C.address || ""),
   home: { enabled: true, fee: 500 },
   services: [
     { name: "Coupe",         price: 600, duration: 30 },

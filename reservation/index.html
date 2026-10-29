@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0d0c0a">
-<title>Réserver — Barber Birkhadem</title>
-<meta name="description" content="Barber Birkhadem — Birkhadem, Alger. Réservez votre rendez-vous en ligne.">
+<title>Réserver en ligne</title>
+<meta name="description" content="Réservez votre rendez-vous en ligne.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap">
@@ -204,11 +204,12 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
 .hidden{display:none !important}
 @media (prefers-reduced-motion:reduce){*{animation:none !important}}
 </style>
+<script src="../config.js"></script>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="topbar"><span class="rule"></span><span class="est">Est. Birkhadem</span><span class="rule"></span></div>
+  <div class="topbar"><span class="rule"></span><span class="est" id="est">Réservation</span><span class="rule"></span></div>
 
   <!-- ===================== HÉROS ===================== -->
   <header class="hero">
@@ -350,7 +351,7 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
   <footer class="foot">
     <div class="ct" id="footCt"></div>
     <div id="footAddr"></div>
-    <div class="sig">Barber Birkhadem — Propulsé par Salon Pro</div>
+    <div class="sig" id="sig">Propulsé par Salon Pro</div>
   </footer>
 
 </div>
@@ -359,13 +360,14 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
 /* ============================================================
    CONFIGURATION DU SALON
    ============================================================ */
+const C = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const SALON = {
-  name: "Barber Birkhadem",
-  tagline: "Rapidité · Propreté · Perfection · Qualité",
-  loc: "Birkhadem — Alger",
-  address: "Birkhadem, Alger",
-  whatsapp: "213563856484",      // numéro WhatsApp (sans + ni espaces). Vide = démo.
-  instagram: "gt_barber_birkhadem",
+  name: C.salonName || "Mon salon",
+  tagline: C.tagline || "Coupe & barbe",
+  loc: C.location || "",
+  address: C.address || "",
+  whatsapp: C.whatsapp || "",      // numéro WhatsApp (sans + ni espaces). Vide = démo.
+  instagram: C.instagram || "",
   video: "",                     // <-- TA VIDÉO (fichier) : "videos/travail.mp4" une fois envoyée. Vide = masquée.
   reels: [],                     // (plus de carte Instagram)
   gallery: [],                   // photos locales éventuelles : ["photos/1.jpg", ...]
@@ -389,8 +391,8 @@ const SALON = {
    Laissez vide = mode « demande WhatsApp » (comme avant).
    Remplissez les 2 valeurs = les créneaux pris se bloquent tout seuls. */
 const SUPABASE = {
-  url: "https://uzwbkjpjznduyftkwyrs.supabase.co",
-  anonKey: "sb_publishable_fjvm2tQu1smKQT84-HltqQ_RJ0jW19G",  // clé publishable (navigateur, sans danger)
+  url: C.supabaseUrl || "",
+  anonKey: C.supabaseAnonKey || "",   // clé publishable (navigateur, sans danger)
 };
 /* ============================================================ */
 
@@ -443,6 +445,8 @@ $("#loc").textContent = SALON.loc.toUpperCase();
 $("#ringText").textContent = `${SALON.name.toUpperCase()} • ${SALON.loc.toUpperCase()} • `;
 $("#hoursTxt").textContent = SALON.hoursText;
 $("#footAddr").textContent = SALON.address;
+{ const city = (SALON.loc||"").split(/[—·,-]/)[0].trim(); if($("#est")) $("#est").textContent = city ? ("Est. "+city) : "Réservation"; }
+if($("#sig")) $("#sig").textContent = SALON.name ? (SALON.name + " — Propulsé par Salon Pro") : "Propulsé par Salon Pro";
 document.title = "Réserver — " + SALON.name;
 if(!SALON.whatsapp) $("#cfgWarn").classList.remove("hidden");
 

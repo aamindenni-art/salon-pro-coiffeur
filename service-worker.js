@@ -2,11 +2,12 @@
    Mise à jour AUTOMATIQUE : le nouveau worker s'active tout de suite
    (skipWaiting), les fichiers cœur passent en « réseau d'abord » quand
    on est en ligne → l'app est toujours à jour sans action de l'utilisateur. */
-const CACHE = "salonpro-v31";
+const CACHE = "salonpro-v32";
 const ASSETS = [
   "./",
   "./index.html",
   "./styles.css",
+  "./config.js",
   "./app.js",
   "./manifest.webmanifest",
   "./vendor/chart.umd.min.js",
@@ -17,7 +18,7 @@ const ASSETS = [
 ];
 
 // Fichiers cœur de l'app : on veut toujours la dernière version quand il y a du réseau.
-const CORE = /(\/|\/index\.html|\/app\.js|\/styles\.css|\/manifest\.webmanifest)$/;
+const CORE = /(\/|\/index\.html|\/app\.js|\/config\.js|\/styles\.css|\/manifest\.webmanifest)$/;
 
 self.addEventListener("install", (e) => {
   // Précharge + s'active immédiatement (pas d'attente du bouton « Mettre à jour »).

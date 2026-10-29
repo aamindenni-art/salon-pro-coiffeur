@@ -72,8 +72,9 @@ function svcIcon(name, category) {
 // Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
 // comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
 // fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
-const APP_VERSION = "v31";
-const ONLINE_DEFAULT = { url: "https://uzwbkjpjznduyftkwyrs.supabase.co", anonKey: "sb_publishable_fjvm2tQu1smKQT84-HltqQ_RJ0jW19G" };
+const APP_VERSION = "v32";
+const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
+const ONLINE_DEFAULT = { url: CFG.supabaseUrl || "", anonKey: CFG.supabaseAnonKey || "" };
 function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
 function onlineOn() { const c = onlineCfg(); return !!(c.url && c.anonKey && c.secret); }
 let _sb = null, _sbKey = "", onlineBookings = [], onlineLoaded = false, onlineErr = "", onlineLoading = false;
@@ -235,7 +236,7 @@ const OLD_RECEIPT_DEFAULTS = [
 const BASE = () => ({
   version: SCHEMA,
   salon: {
-    name: "Mon salon", currency: "DA", phone: "", address: "",
+    name: CFG.salonName || "Mon salon", currency: "DA", phone: "", address: CFG.address || "",
     reminderTemplate: "Bonjour {client}, nous vous rappelons votre rendez-vous {date} à {heure} chez {salon}. En cas d'empêchement, merci de nous prévenir.",
     receiptFooter: "Merci ! N'hésitez pas à nous recommander à vos proches.",
     defaultDuration: 30, onboarded: false, pin: "", pinQuestion: "", pinAnswer: "",
