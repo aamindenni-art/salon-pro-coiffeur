@@ -13,7 +13,7 @@
   --gold-br:#caa34e; --on-accent:#1b1407;
   --logo-grad:linear-gradient(145deg,#d8b86a,#8c6a18);
   --gold-metal:linear-gradient(135deg,#e8cd84 0%,#caa34e 30%,#a87f2c 62%,#8c6a18 86%,#c9a24c 100%);
-  --vignette:rgba(40,30,10,.05);
+  --vignette:rgba(40,30,10,.05); --bg-photo:.05;
   --good:#2f7d4f; --good-soft:rgba(47,125,79,.13);
   --warn:#9c7619; --warn-soft:rgba(156,118,25,.14);
   --bad:#c0392b; --bad-soft:rgba(192,57,43,.12);
@@ -46,7 +46,7 @@
   --gold-br:#f0d290; --on-accent:#1b1407;
   --logo-grad:linear-gradient(145deg,#f0d290,#a07d2b);
   --gold-metal:linear-gradient(135deg,#f7e6b0 0%,#eacd84 26%,#d8b35e 52%,#b68f3a 80%,#f0d290 100%);
-  --vignette:rgba(0,0,0,.5);
+  --vignette:rgba(0,0,0,.5); --bg-photo:.09;
   --good:#5bbd84; --good-soft:rgba(91,189,132,.16);
   --warn:#e0ad4e; --warn-soft:rgba(224,173,78,.16);
   --bad:#e07a6b; --bad-soft:rgba(224,122,107,.16);
@@ -69,7 +69,7 @@
   --gold-br:#f0d290; --on-accent:#1b1407;
   --logo-grad:linear-gradient(145deg,#f0d290,#a07d2b);
   --gold-metal:linear-gradient(135deg,#f7e6b0 0%,#eacd84 26%,#d8b35e 52%,#b68f3a 80%,#f0d290 100%);
-  --vignette:rgba(0,0,0,.5);
+  --vignette:rgba(0,0,0,.5); --bg-photo:.09;
   --good:#5bbd84; --good-soft:rgba(91,189,132,.16);
   --warn:#e0ad4e; --warn-soft:rgba(224,173,78,.16);
   --bad:#e07a6b; --bad-soft:rgba(224,122,107,.16);
@@ -493,3 +493,21 @@ a{color:var(--accent-ink)}
 @keyframes sp-up{to{opacity:1;transform:translateY(0)}}
 @keyframes sp-out{to{opacity:0;visibility:hidden;transform:scale(1.04)}}
 @keyframes sp-shine{to{left:120%}}
+
+/* ---------- Fond : photo de coiffeur discrète + marbre doux ---------- */
+#bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+#bg::before{content:"";position:absolute;inset:0;
+  background:#0a0906 url("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1280&q=68&auto=format&fit=crop") center/cover;
+  opacity:var(--bg-photo);filter:grayscale(.5) contrast(1.03);
+  -webkit-mask:linear-gradient(180deg,#000,rgba(0,0,0,.3) 52%,transparent 92%);mask:linear-gradient(180deg,#000,rgba(0,0,0,.3) 52%,transparent 92%)}
+#bg::after{content:"";position:absolute;inset:0;opacity:.6;
+  background:radial-gradient(55% 45% at 16% 6%,var(--accent-soft),transparent 60%),radial-gradient(48% 42% at 90% 24%,rgba(216,179,94,.05),transparent 62%)}
+
+/* ---------- Apparition en douceur des cartes ---------- */
+#content .card,#content .kpi,#content .promo,#content .insight{animation:rise .42s cubic-bezier(.2,.75,.25,1) both}
+#content .kpis .kpi:nth-child(2){animation-delay:.05s}
+#content .kpis .kpi:nth-child(3){animation-delay:.1s}
+#content .kpis .kpi:nth-child(4){animation-delay:.15s}
+#content .kpis .kpi:nth-child(5){animation-delay:.2s}
+#content .kpis .kpi:nth-child(6){animation-delay:.25s}
+@keyframes rise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
