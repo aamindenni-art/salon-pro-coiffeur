@@ -1,5 +1,5 @@
 /* Salon Pro — service worker (cache applicatif + hors-ligne) */
-const CACHE = "salonpro-v18";
+const CACHE = "salonpro-v19";
 const ASSETS = [
   "./",
   "./index.html",

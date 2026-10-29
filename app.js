@@ -114,8 +114,17 @@ async function acceptOnline(b) {
   save();
   b.status = "confirmed";   // optimiste : le RDV est dans l'agenda → on sort la carte des « en attente » (pas de double-ajout)
   render();
+  confirmWhatsApp(b);       // ouvre WhatsApp avec le message de confirmation (dans le geste utilisateur, avant tout await)
   try { await setBookingStatus(b.id, "confirmed"); toast("Rendez-vous confirmé ✓"); }
   catch (e) { toast("RDV ajouté à l'agenda (synchro en ligne à refaire)", "info"); }
+}
+// Ouvre WhatsApp pré-rempli avec la confirmation du RDV pour le client.
+function confirmWhatsApp(b) {
+  const tel = telIntl(b.client_phone); if (!tel) return;
+  const prenom = String(b.client_name || "").trim().split(" ")[0] || "";
+  const lieu = b.place === "home" ? `\n📍 À domicile : ${b.address || ""}` : "";
+  const msg = `Bonjour ${prenom} 👋\nVotre rendez-vous chez ${DB.salon.name} est *confirmé* ✅\n🗓️ ${capFirst(fmtDFull(b.date))} à ${b.time}\n✂️ ${b.service_name}${lieu}\n\nÀ bientôt !`;
+  window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
 }
 async function refuseOnline(b) {
   try { await setBookingStatus(b.id, "cancelled"); onlineBookings = onlineBookings.filter((x) => x.id !== b.id); toast("Réservation refusée — créneau libéré"); render(); }
