@@ -1,5 +1,8 @@
-/* Salon Pro — service worker (cache applicatif + hors-ligne) */
-const CACHE = "salonpro-v26";
+/* Salon Pro — service worker (cache applicatif + hors-ligne)
+   Mise à jour AUTOMATIQUE : le nouveau worker s'active tout de suite
+   (skipWaiting), les fichiers cœur passent en « réseau d'abord » quand
+   on est en ligne → l'app est toujours à jour sans action de l'utilisateur. */
+const CACHE = "salonpro-v27";
 const ASSETS = [
   "./",
   "./index.html",
@@ -13,8 +16,12 @@ const ASSETS = [
   "./icons/icon-maskable-512.png",
 ];
 
+// Fichiers cœur de l'app : on veut toujours la dernière version quand il y a du réseau.
+const CORE = /(\/|\/index\.html|\/app\.js|\/styles\.css|\/manifest\.webmanifest)$/;
+
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
+  // Précharge + s'active immédiatement (pas d'attente du bouton « Mettre à jour »).
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -25,35 +32,42 @@ self.addEventListener("activate", (e) => {
   );
 });
 
-// Mise à jour pilotée par la page (bouton « Mettre à jour »)
 self.addEventListener("message", (e) => { if (e.data === "skipWaiting") self.skipWaiting(); });
+
+// Réseau d'abord : on prend le réseau, on met à jour le cache, repli sur le cache si hors-ligne.
+function networkFirst(req) {
+  return fetch(req).then((res) => {
+    const copy = res.clone();
+    caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+    return res;
+  }).catch(() => caches.match(req).then((r) => r || caches.match("./index.html")));
+}
+// Cache d'abord : rapide, réseau en secours (pour les fichiers qui ne changent pas : icônes, vendor).
+function cacheFirst(req) {
+  return caches.match(req).then((cached) =>
+    cached || fetch(req).then((res) => {
+      const copy = res.clone();
+      caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
+      return res;
+    }).catch(() => cached)
+  );
+}
 
 self.addEventListener("fetch", (e) => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
 
-  // Navigations : réseau d'abord, repli sur l'app en cache (hors-ligne).
-  if (req.mode === "navigate") {
-    e.respondWith(fetch(req).catch(() => caches.match("./index.html").then((r) => r || caches.match("./"))));
-    return;
-  }
+  // Navigations → réseau d'abord (toujours la dernière page), repli hors-ligne.
+  if (req.mode === "navigate") { e.respondWith(networkFirst(req)); return; }
 
-  // Même origine : cache d'abord (rapide + hors-ligne), réseau en secours.
   if (url.origin === self.location.origin) {
-    e.respondWith(
-      caches.match(req).then((cached) =>
-        cached || fetch(req).then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
-          return res;
-        }).catch(() => cached)
-      )
-    );
+    // Fichiers cœur (app.js, styles.css, …) → réseau d'abord ; le reste → cache d'abord.
+    e.respondWith(CORE.test(url.pathname) ? networkFirst(req) : cacheFirst(req));
     return;
   }
 
-  // Autres origines (polices) : réseau puis cache.
+  // Autres origines (polices, images) : réseau puis cache.
   e.respondWith(
     fetch(req).then((res) => { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {}); return res; })
       .catch(() => caches.match(req))
