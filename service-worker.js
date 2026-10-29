@@ -2,7 +2,7 @@
    Mise à jour AUTOMATIQUE : le nouveau worker s'active tout de suite
    (skipWaiting), les fichiers cœur passent en « réseau d'abord » quand
    on est en ligne → l'app est toujours à jour sans action de l'utilisateur. */
-const CACHE = "salonpro-v30";
+const CACHE = "salonpro-v31";
 const ASSETS = [
   "./",
   "./index.html",

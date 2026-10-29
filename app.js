@@ -72,7 +72,7 @@ function svcIcon(name, category) {
 // Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
 // comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
 // fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
-const APP_VERSION = "v30";
+const APP_VERSION = "v31";
 const ONLINE_DEFAULT = { url: "https://uzwbkjpjznduyftkwyrs.supabase.co", anonKey: "sb_publishable_fjvm2tQu1smKQT84-HltqQ_RJ0jW19G" };
 function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
 function onlineOn() { const c = onlineCfg(); return !!(c.url && c.anonKey && c.secret); }
@@ -103,6 +103,14 @@ async function setBookingStatus(id, status) {
   const sb = await sbClient();
   const { error } = await sb.rpc("set_booking_status", { secret: onlineCfg().secret, booking_id: id, new_status: status });
   if (error) throw error;
+}
+// Pousse la config publique (ex : réservation à domicile) vers Supabase → la page de réservation la lit.
+async function pushConfig() {
+  if (!onlineOn()) return false;
+  const sb = await sbClient();
+  const { error } = await sb.rpc("set_config", { secret: onlineCfg().secret, cfg: { home: DB.salon.home || { enabled: true, fee: 500 } } });
+  if (error) throw error;
+  return true;
 }
 const phoneKey = (p) => String(p || "").replace(/\D/g, "").slice(-9);
 // Accepter : crée le client + la prestation si besoin, pose le RDV confirmé, puis confirme en ligne.
@@ -1136,7 +1144,7 @@ function expenseForm(id) {
 
 /* ======================= Vue : Réglages ======================= */
 function viewSettings(c) {
-  const s = DB.salon; const mode = themeMode(); const oc = onlineCfg();
+  const s = DB.salon; const mode = themeMode(); const oc = onlineCfg(); const home = s.home || { enabled: true, fee: 500 };
   c.innerHTML = pageHead("Réglages", "Votre salon & l'application") +
     `<div class="card"><div class="card-h"><h3>Mon salon</h3></div><div class="card-b">
       <div class="field"><label>Nom du salon</label><input id="s_name" value="${esc(s.name)}"></div>
@@ -1170,6 +1178,15 @@ function viewSettings(c) {
       <div class="field"><label>Clé « anon public »</label><input id="o_key" placeholder="eyJhbGci..." value="${esc(oc.anonKey)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div class="field"><label>Code secret</label><input id="o_sec" placeholder="votre code du schéma SQL" value="${esc(oc.secret)}" autocomplete="off" autocapitalize="off" spellcheck="false"></div>
       <div style="display:flex;gap:9px"><button class="btn primary grow" id="saveOnline">${svg("check")}Enregistrer</button><button class="btn" id="testOnline">Tester</button></div></div></div>
+
+    <div class="card"><div class="card-h"><h3>Réservation à domicile</h3>${home.enabled ? '<span class="pill good">Activé</span>' : '<span class="pill mut">Désactivé</span>'}</div><div class="card-b">
+      <label class="check" style="justify-content:space-between;cursor:pointer;margin-bottom:12px">
+        <span style="font-weight:600">Proposer le domicile aux clients</span>
+        <span class="switch"><input type="checkbox" id="h_enabled" ${home.enabled ? "checked" : ""}><span class="track"></span></span>
+      </label>
+      <div class="field"><label>Frais de déplacement (DA)</label><input type="number" inputmode="numeric" id="h_fee" value="${home.fee}" style="max-width:170px"></div>
+      <button class="btn primary block" id="saveHome">${svg("check")}Enregistrer</button>
+      <div class="hint" style="margin-top:8px">Ce que vos clients voient sur la page de réservation (nécessite les réservations en ligne activées pour se synchroniser).</div></div></div>
 
     <div class="card"><div class="card-h"><h3>Mes données</h3><span class="mut">${DB.clients.length} clients · ${DB.sales.length} ventes</span></div><div class="card-b">
       <p style="margin:0 0 12px;font-size:13px;color:var(--muted)">Tout est stocké sur ce téléphone. Faites une sauvegarde de temps en temps (fichier à garder ou à vous envoyer).</p>
@@ -1207,6 +1224,14 @@ function viewSettings(c) {
     toast(onlineErr ? "Échec : " + onlineErr : `OK — ${onlineBookings.length} réservation(s) lue(s)`, onlineErr ? "bad" : "good");
   };
   const oh = $("#onHelp"); if (oh) oh.onclick = (e) => { e.preventDefault(); onlineHelpSheet(); };
+  $("#saveHome").onclick = async () => {
+    s.home = { enabled: $("#h_enabled").checked, fee: Math.max(0, Number($("#h_fee").value) || 0) };
+    save(); render();
+    try {
+      const synced = await pushConfig();
+      toast(synced ? "Enregistré ✓ — visible sur la page de réservation" : "Enregistré (activez les réservations en ligne pour que vos clients le voient)");
+    } catch (e) { toast("Enregistré en local (synchro en ligne échouée)", "info"); }
+  };
   $("#forceUpd").onclick = async () => {
     toast("Mise à jour en cours…");
     try {

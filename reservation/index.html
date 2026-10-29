@@ -415,6 +415,11 @@ async function initOnline(){
   try{
     const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
     sb = createClient(SUPABASE.url, SUPABASE.anonKey);
+    // Config réglée depuis l'app (ex : réservation à domicile)
+    try{
+      const { data: cfg } = await sb.from("salon_config").select("data").eq("id","main").single();
+      if(cfg && cfg.data && cfg.data.home){ SALON.home = cfg.data.home; setupPlace(); }
+    }catch(e){ /* config indisponible → valeurs par défaut */ }
     await loadBusy();
     if(sel.date) buildSlots();   // rafraîchir si un jour est déjà choisi
   }catch(e){ console.warn("Réservation en ligne indisponible :", e); sb=null; }
@@ -553,9 +558,11 @@ function update(){
 $("#cName").oninput=update; $("#cPhone").oninput=update;
 { const a=$("#cAddr"); if(a) a.oninput=update; }
 
-// Lieu : au salon / à domicile
-(function(){
-  if(!(SALON.home && SALON.home.enabled)){ const pw=$("#placeWrap"); if(pw) pw.classList.add("hidden"); sel.place="salon"; return; }
+// Lieu : au salon / à domicile (réglable depuis l'app → synchronisé via Supabase)
+function setupPlace(){
+  const pw=$("#placeWrap");
+  if(!(SALON.home && SALON.home.enabled)){ if(pw) pw.classList.add("hidden"); sel.place="salon"; const af=$("#addrField"); if(af) af.classList.add("hidden"); if(sel.time) drawSummary(); update(); return; }
+  if(pw) pw.classList.remove("hidden");
   $("#salonLoc").textContent = SALON.loc || SALON.address || "Au salon";
   $("#feeTxt").textContent = SALON.home.fee>0 ? ("+ "+money(SALON.home.fee)) : "Gratuit";
   document.querySelectorAll("[data-place]").forEach(b=>b.onclick=()=>{
@@ -565,7 +572,9 @@ $("#cName").oninput=update; $("#cPhone").oninput=update;
     if(sel.time) drawSummary();
     update();
   });
-})();
+  if(sel.time) drawSummary();
+}
+setupPlace();
 
 function whatsappOut(name,phone,d){
   const addr=(($("#cAddr")||{}).value||"").trim();

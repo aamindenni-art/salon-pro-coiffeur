@@ -85,6 +85,29 @@ $$;
 grant execute on function public.get_bookings(text, date)             to anon;
 grant execute on function public.set_booking_status(text, uuid, text) to anon;
 
+-- 6) Config publique du salon (réglable depuis l'app : ex. réservation à domicile) --
+create table if not exists public.salon_config (
+  id          text primary key default 'main',
+  data        jsonb not null default '{}'::jsonb,
+  updated_at  timestamptz not null default now()
+);
+insert into public.salon_config (id, data) values ('main', '{}'::jsonb) on conflict (id) do nothing;
+alter table public.salon_config enable row level security;
+-- La page de réservation (public) peut LIRE la config.
+drop policy if exists "config_public_read" on public.salon_config;
+create policy "config_public_read" on public.salon_config for select to anon using (true);
+grant select on public.salon_config to anon;
+-- Seul le coiffeur (code secret) peut l'ÉCRIRE.
+create or replace function public.set_config(secret text, cfg jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if secret <> 'CHANGEZ-MOI-CODE-SECRET' then raise exception 'non autorisé'; end if;
+  update public.salon_config set data = cfg, updated_at = now() where id = 'main';
+  if not found then insert into public.salon_config (id, data) values ('main', cfg); end if;
+end;
+$$;
+grant execute on function public.set_config(text, jsonb) to anon;
+
 -- ============================================================
 --  Fin. Récupérez ensuite dans Supabase :
 --   • Project URL   (Settings → API → Project URL)
