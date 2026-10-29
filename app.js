@@ -1381,7 +1381,20 @@ function showRecovery() {
   };
 }
 
+// Écran d'accueil animé : vrai nom du salon + retrait après l'animation.
+// Ne se rejoue pas à chaque rechargement dans la même session (sessionStorage).
+function splashInit() {
+  const sp = $("#splash"); if (!sp) return;
+  try {
+    if (sessionStorage.getItem("sp_done")) { sp.classList.add("gone"); return; }
+    sessionStorage.setItem("sp_done", "1");
+  } catch (e) {}
+  const nm = $(".sp-name", sp); if (nm && DB.salon && DB.salon.name) nm.textContent = DB.salon.name;
+  setTimeout(() => { sp.classList.add("gone"); setTimeout(() => sp.remove(), 80); }, 2050);
+}
+
 function boot() {
+  splashInit();
   $("#btnSettings").innerHTML = svg("gear");
   $("#btnInstall").innerHTML = svg("install");
   const bl = $("#btnLock"); if (bl) { bl.innerHTML = svg("lock"); bl.onclick = lockNow; }

@@ -467,3 +467,29 @@ a{color:var(--accent-ink)}
 
 @media (prefers-reduced-motion:reduce){*{animation-duration:.001s!important;transition-duration:.001s!important}}
 @media (min-width:820px){.kpis{grid-template-columns:repeat(3,1fr)}.svc-grid{grid-template-columns:repeat(3,1fr)}}
+
+/* ---------- Écran d'accueil animé (splash) ---------- */
+#splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;
+  background:radial-gradient(62% 60% at 50% 42%,#1d1810,#0b0a06 80%);
+  animation:sp-out .55s ease 1.5s forwards;pointer-events:none}
+#splash.gone{display:none}
+#splash::after{content:"";position:absolute;top:0;bottom:0;width:42%;left:-55%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,rgba(247,230,176,.14),transparent);transform:skewX(-18deg);
+  animation:sp-shine 1.1s ease .5s 1 forwards}
+.sp-in{text-align:center}
+.sp-mark{width:120px;height:120px;filter:drop-shadow(0 10px 28px rgba(240,210,144,.22));
+  opacity:0;transform:scale(.6);animation:sp-pop .9s cubic-bezier(.2,.8,.2,1) .1s forwards}
+.sp-ring{stroke-dasharray:390;stroke-dashoffset:390;animation:sp-draw 1s ease .2s forwards}
+.sp-tools{opacity:0;animation:sp-fade .6s ease .55s forwards}
+.sp-star{opacity:0;animation:sp-fade .5s ease .82s forwards}
+.sp-name{margin-top:16px;font-family:var(--sign);font-weight:400;font-size:34px;letter-spacing:2px;line-height:1;
+  background:linear-gradient(180deg,#fff,#f0d290 48%,#a07d2b);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#f0d290;
+  opacity:0;transform:translateY(12px);animation:sp-up .7s ease .5s forwards}
+.sp-sub{margin-top:9px;font-family:var(--ff-display);font-size:12px;letter-spacing:4px;text-transform:uppercase;color:#a79b80;
+  opacity:0;transform:translateY(10px);animation:sp-up .7s ease .72s forwards}
+@keyframes sp-pop{to{opacity:1;transform:scale(1)}}
+@keyframes sp-draw{to{stroke-dashoffset:0}}
+@keyframes sp-fade{to{opacity:1}}
+@keyframes sp-up{to{opacity:1;transform:translateY(0)}}
+@keyframes sp-out{to{opacity:0;visibility:hidden;transform:scale(1.04)}}
+@keyframes sp-shine{to{left:120%}}

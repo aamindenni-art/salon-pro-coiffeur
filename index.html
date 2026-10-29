@@ -20,6 +20,22 @@
 <script src="app.js" defer></script>
 </head>
 <body>
+<div id="splash" aria-hidden="true">
+  <div class="sp-in">
+    <svg class="sp-mark" viewBox="0 0 160 160">
+      <defs><linearGradient id="spg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f7e6b0"/><stop offset="1" stop-color="#a07d2b"/></linearGradient></defs>
+      <circle class="sp-ring" cx="80" cy="80" r="62" fill="none" stroke="url(#spg)" stroke-width="1.8"/>
+      <circle cx="80" cy="80" r="52" fill="none" stroke="url(#spg)" stroke-width=".8" opacity=".35"/>
+      <g class="sp-tools" fill="none" stroke="url(#spg)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <g transform="translate(80,82) rotate(-50) scale(3.1) translate(-12,-12)"><circle cx="6" cy="6" r="2.5"/><circle cx="6" cy="18" r="2.5"/><path d="M8.3 7.5 20 18M8.3 16.5 20 6"/></g>
+        <g transform="translate(80,82) rotate(50) scale(3.1) translate(-15,-7)"><rect x="1" y="5" width="11" height="4" rx="2"/><path d="M12.6 5.2 L27 3.5 a1.4 1.4 0 0 1 1.1 2.1 L13.4 9"/></g>
+      </g>
+      <path class="sp-star" d="M80 11 l1.8 4.6 4.9.6-3.5 3.3.9 4.8-4.1-2.3-4.1 2.3.9-4.8-3.5-3.3 4.9-.6z" fill="url(#spg)"/>
+    </svg>
+    <div class="sp-name">BARBER BIRKHADEM</div>
+    <div class="sp-sub">L'art de la coupe</div>
+  </div>
+</div>
 <div id="app">
   <header class="topbar">
     <button id="logo" class="logo" aria-label="Accueil">S</button>
