@@ -29,6 +29,7 @@
   --r:18px; --r-sm:12px; --r-pill:999px;
   --ff:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
   --ff-display:"Oswald",sans-serif;
+  --ff-title:"Playfair Display","Cormorant Garamond",Georgia,serif;  /* titres élégants (luxe) */
   --sign:"Bebas Neue","Oswald",sans-serif;
   --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
   --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
@@ -143,7 +144,7 @@ a{color:var(--accent-ink)}
 
 /* ---------- Page header ---------- */
 .page-h{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:20px}
-.page-h .h{font-family:var(--sign);font-weight:400;font-size:34px;line-height:.95;letter-spacing:1px}
+.page-h .h{font-family:var(--ff-title);font-weight:700;font-size:30px;line-height:1.02;letter-spacing:.2px}
 .page-h .s{color:var(--muted);font-size:13px;margin-top:4px;font-family:var(--ff-display);letter-spacing:.5px}
 
 /* ---------- Buttons ---------- */
@@ -181,7 +182,7 @@ a{color:var(--accent-ink)}
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
 .card+.card{margin-top:14px}
 .card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:15px 16px 0}
-.card-h h3{font-family:var(--sign);font-weight:400;font-size:19px;letter-spacing:.8px}
+.card-h h3{font-family:var(--ff-title);font-weight:600;font-size:18px;letter-spacing:.2px}
 .card-h .mut{font-size:12px;color:var(--muted);font-weight:500;font-family:var(--ff-display);letter-spacing:.5px}
 .card-b{padding:14px 16px}
 
@@ -271,7 +272,7 @@ a{color:var(--accent-ink)}
 @keyframes sheet-up{from{transform:translateY(100%)}}
 .sheet::before{content:"";width:40px;height:4px;border-radius:999px;background:var(--line-2);margin:10px auto 0;flex:none}
 .sheet-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px 10px}
-.sheet-h h3{font-family:var(--sign);font-weight:400;font-size:24px;letter-spacing:1px}
+.sheet-h h3{font-family:var(--ff-title);font-weight:700;font-size:22px;letter-spacing:.2px}
 .sheet-b{padding:4px 18px 18px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .sheet-f{padding:12px 18px calc(12px + var(--sab));border-top:1px solid var(--line);display:flex;gap:10px;background:var(--surface)}
 .sheet-f .btn{flex:1}
