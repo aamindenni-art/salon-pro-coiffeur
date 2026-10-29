@@ -69,8 +69,11 @@ function svcIcon(name, category) {
      url + anonKey  → les MÊMES que dans reservation/index.html
      secret         → le code choisi dans supabase-schema.sql
    Les 3 valeurs se collent ci-dessous, c'est le seul réglage à faire. */
-// Config lue depuis les Réglages (DB.salon.online), collable dans l'app.
-function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || "", anonKey: o.anonKey || "", secret: o.secret || "" }; }
+// Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
+// comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
+// fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
+const ONLINE_DEFAULT = { url: "https://uzwbkjpjznduyftkwyrs.supabase.co", anonKey: "sb_publishable_fjvm2tQu1smKQT84-HltqQ_RJ0jW19G" };
+function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
 function onlineOn() { const c = onlineCfg(); return !!(c.url && c.anonKey && c.secret); }
 let _sb = null, _sbKey = "", onlineBookings = [], onlineLoaded = false, onlineErr = "", onlineLoading = false;
 
