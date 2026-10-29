@@ -126,7 +126,15 @@ function confirmWhatsApp(b) {
   const msg = `Bonjour ${prenom} 👋\nVotre rendez-vous chez ${DB.salon.name} est *confirmé* ✅\n🗓️ ${capFirst(fmtDFull(b.date))} à ${b.time}\n✂️ ${b.service_name}${lieu}\n\nÀ bientôt !`;
   window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
 }
+// Ouvre WhatsApp pré-rempli avec un message poli de refus pour le client.
+function refuseWhatsApp(b) {
+  const tel = telIntl(b.client_phone); if (!tel) return;
+  const prenom = String(b.client_name || "").trim().split(" ")[0] || "";
+  const msg = `Bonjour ${prenom} 👋\nMerci pour votre demande de réservation chez ${DB.salon.name}.\nMalheureusement le créneau du ${fmtDFull(b.date)} à ${b.time} n'est plus disponible 😔\nN'hésitez pas à choisir un autre horaire, je serai ravi de vous accueillir 🙏`;
+  window.open("https://wa.me/" + tel + "?text=" + encodeURIComponent(msg), "_blank", "noopener");
+}
 async function refuseOnline(b) {
+  refuseWhatsApp(b);   // message poli au client, dans le geste (bouton du confirmSheet), avant l'await
   try { await setBookingStatus(b.id, "cancelled"); onlineBookings = onlineBookings.filter((x) => x.id !== b.id); toast("Réservation refusée — créneau libéré"); render(); }
   catch (e) { toast("Échec : réessayez", "bad"); }
 }
