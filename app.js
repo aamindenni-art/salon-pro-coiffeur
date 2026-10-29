@@ -72,7 +72,7 @@ function svcIcon(name, category) {
 // Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
 // comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
 // fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
-const APP_VERSION = "v32";
+const APP_VERSION = "v33";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const ONLINE_DEFAULT = { url: CFG.supabaseUrl || "", anonKey: CFG.supabaseAnonKey || "" };
 function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
@@ -105,14 +105,30 @@ async function setBookingStatus(id, status) {
   const { error } = await sb.rpc("set_booking_status", { secret: onlineCfg().secret, booking_id: id, new_status: status });
   if (error) throw error;
 }
-// Pousse la config publique (ex : réservation à domicile) vers Supabase → la page de réservation la lit.
+// Profil public du salon (ce que voient les clients sur la page de réservation + le site).
+function publicProfile() {
+  const s = DB.salon;
+  return {
+    name: s.name || CFG.salonName || "",
+    tagline: s.tagline || CFG.tagline || "",
+    loc: s.loc || CFG.location || "",
+    address: s.address || CFG.address || "",
+    whatsapp: s.whatsapp || CFG.whatsapp || "",
+    instagram: s.instagram || CFG.instagram || "",
+    home: s.home || { enabled: true, fee: 500 },
+    services: DB.services.map((x) => ({ name: x.name, price: x.price, duration: x.duration })),
+  };
+}
+// Pousse le profil public vers Supabase → la page de réservation et le site le lisent.
 async function pushConfig() {
   if (!onlineOn()) return false;
   const sb = await sbClient();
-  const { error } = await sb.rpc("set_config", { secret: onlineCfg().secret, cfg: { home: DB.salon.home || { enabled: true, fee: 500 } } });
+  const { error } = await sb.rpc("set_config", { secret: onlineCfg().secret, cfg: publicProfile() });
   if (error) throw error;
   return true;
 }
+// Synchro silencieuse après une modif du profil (identité, prestations…).
+function syncConfigSilent() { if (onlineOn()) pushConfig().catch(() => {}); }
 const phoneKey = (p) => String(p || "").replace(/\D/g, "").slice(-9);
 // Accepter : crée le client + la prestation si besoin, pose le RDV confirmé, puis confirme en ligne.
 async function acceptOnline(b) {
@@ -237,6 +253,7 @@ const BASE = () => ({
   version: SCHEMA,
   salon: {
     name: CFG.salonName || "Mon salon", currency: "DA", phone: "", address: CFG.address || "",
+    tagline: CFG.tagline || "", loc: CFG.location || "", whatsapp: CFG.whatsapp || "", instagram: CFG.instagram || "", home: { enabled: true, fee: 500 },
     reminderTemplate: "Bonjour {client}, nous vous rappelons votre rendez-vous {date} à {heure} chez {salon}. En cas d'empêchement, merci de nous prévenir.",
     receiptFooter: "Merci ! N'hésitez pas à nous recommander à vos proches.",
     defaultDuration: 30, onboarded: false, pin: "", pinQuestion: "", pinAnswer: "",
@@ -1095,9 +1112,9 @@ function serviceForm(id) {
         const name = $("#s_name").value.trim(), price = Number($("#s_price").value); if (!name) { toast("Le nom est requis", "bad"); return; }
         const data = { name, price: price || 0, duration: Number($("#s_dur").value) || 0, category: $("#s_cat").value.trim() || "Autres" };
         if (s) Object.assign(s, data); else DB.services.push({ id: uid(), ...data });
-        save(); closeSheet(); render(); toast(s ? "Prestation modifiée" : "Prestation ajoutée");
+        save(); closeSheet(); render(); syncConfigSilent(); toast(s ? "Prestation modifiée" : "Prestation ajoutée");
       };
-      const del = $("[data-del]", root); if (del) del.onclick = () => confirmSheet("Supprimer cette prestation ?", "Les ventes passées ne changent pas.", () => { DB.services = DB.services.filter((x) => x.id !== id); save(); closeSheet(); render(); toast("Prestation supprimée"); });
+      const del = $("[data-del]", root); if (del) del.onclick = () => confirmSheet("Supprimer cette prestation ?", "Les ventes passées ne changent pas.", () => { DB.services = DB.services.filter((x) => x.id !== id); save(); closeSheet(); render(); syncConfigSilent(); toast("Prestation supprimée"); });
     },
   });
 }
@@ -1149,10 +1166,15 @@ function viewSettings(c) {
   c.innerHTML = pageHead("Réglages", "Votre salon & l'application") +
     `<div class="card"><div class="card-h"><h3>Mon salon</h3></div><div class="card-b">
       <div class="field"><label>Nom du salon</label><input id="s_name" value="${esc(s.name)}"></div>
-      <div class="row2"><div class="field"><label>Devise</label><input id="s_cur" value="${esc(s.currency)}"></div>
-        <div class="field"><label>Téléphone</label><input id="s_phone" type="tel" value="${esc(s.phone || "")}"></div></div>
+      <div class="field"><label>Slogan</label><input id="s_tag" value="${esc(s.tagline || "")}" placeholder="Ex : L'art de la coupe & de la barbe"></div>
+      <div class="row2"><div class="field"><label>Lieu (court)</label><input id="s_loc" value="${esc(s.loc || "")}" placeholder="Ex : Birkhadem · Alger"></div>
+        <div class="field"><label>Devise</label><input id="s_cur" value="${esc(s.currency)}"></div></div>
       <div class="field"><label>Adresse</label><input id="s_addr" value="${esc(s.address || "")}"></div>
-      <button class="btn primary block" id="saveSalon">${svg("check")}Enregistrer</button></div></div>
+      <div class="row2"><div class="field"><label>WhatsApp</label><input id="s_wa" type="tel" value="${esc(s.whatsapp || "")}" placeholder="0661 ..."></div>
+        <div class="field"><label>Instagram</label><input id="s_ig" value="${esc(s.instagram || "")}" placeholder="pseudo (sans @)" autocapitalize="off"></div></div>
+      <div class="field"><label>Téléphone (interne)</label><input id="s_phone" type="tel" value="${esc(s.phone || "")}"></div>
+      <button class="btn primary block" id="saveSalon">${svg("check")}Enregistrer</button>
+      <div class="hint" style="margin-top:8px">Nom, slogan, lieu, adresse, WhatsApp et Instagram apparaissent sur votre page de réservation et votre site.</div></div></div>
 
     <div class="card"><div class="card-h"><h3>Rappels & reçus</h3></div><div class="card-b">
       <div class="field"><label>Message de rappel</label><textarea id="s_tmpl">${esc(s.reminderTemplate)}</textarea>
@@ -1204,7 +1226,17 @@ function viewSettings(c) {
       <div style="color:var(--faint);font-size:12px;margin-top:10px">Salon Pro · ${APP_VERSION} · 100% sur votre téléphone</div>
     </div>`;
 
-  $("#saveSalon").onclick = () => { s.name = $("#s_name").value.trim() || "Mon salon"; s.currency = $("#s_cur").value.trim() || "DA"; s.phone = $("#s_phone").value.trim(); s.address = $("#s_addr").value.trim(); save(); render(); toast("Enregistré"); };
+  $("#saveSalon").onclick = () => {
+    s.name = $("#s_name").value.trim() || "Mon salon";
+    s.tagline = $("#s_tag").value.trim();
+    s.loc = $("#s_loc").value.trim();
+    s.currency = $("#s_cur").value.trim() || "DA";
+    s.address = $("#s_addr").value.trim();
+    s.whatsapp = telIntl($("#s_wa").value);
+    s.instagram = $("#s_ig").value.trim().replace(/^@/, "");
+    s.phone = $("#s_phone").value.trim();
+    save(); render(); syncConfigSilent(); toast("Enregistré");
+  };
   $("#saveMsg").onclick = () => { s.reminderTemplate = $("#s_tmpl").value; s.receiptFooter = $("#s_foot").value.trim(); s.defaultDuration = Number($("#s_dur").value) || 30; save(); toast("Enregistré"); };
   $$("#theme [data-t]").forEach((b) => b.onclick = () => { setTheme(b.dataset.t); viewSettings(c); });
   const tgl = $("#pinToggle"); if (tgl) tgl.onchange = () => {

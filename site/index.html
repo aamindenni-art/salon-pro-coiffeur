@@ -322,6 +322,7 @@ const $=(s)=>document.querySelector(s);
 const money=(n)=>Math.round(n).toLocaleString("fr-FR")+" DA";
 const JOURS=["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
 
+function renderSite(){
 // Identité
 $("#navName").textContent=SITE.name;
 $("#heroName").textContent=SITE.name.toUpperCase();
@@ -371,6 +372,27 @@ $("#hours").innerHTML=[1,2,3,4,5,6,0].map(i=>{
   const val = (h&&h.on) ? `${h.open} – ${h.close}` : "Fermé";
   return `<div class="hrow ${i===todayIdx?"today":""}"><span class="day">${JOURS[i]}</span><span>${val}</span></div>`;
 }).join("");
+}
+renderSite();
+
+// Profil public réglé depuis l'app (identité + prestations + domicile) via Supabase
+(async function(){
+  if(!(C.supabaseUrl && C.supabaseAnonKey)) return;
+  try{
+    const r = await fetch(C.supabaseUrl+"/rest/v1/salon_config?id=eq.main&select=data",
+      { headers:{ apikey:C.supabaseAnonKey, Authorization:"Bearer "+C.supabaseAnonKey } });
+    const rows = await r.json(); const d = rows && rows[0] && rows[0].data;
+    if(d){
+      if(d.name) SITE.name=d.name; if(d.tagline) SITE.tagline=d.tagline;
+      if(d.loc) SITE.loc=d.loc; if(d.address) SITE.address=d.address;
+      if(d.whatsapp!==undefined) SITE.whatsapp=d.whatsapp; if(d.instagram!==undefined) SITE.instagram=d.instagram;
+      if(d.home) SITE.home=d.home;
+      if(Array.isArray(d.services) && d.services.length) SITE.services=d.services;
+      SITE.mapsQuery = (SITE.name||"")+" "+(SITE.address||"");
+      renderSite();
+    }
+  }catch(e){ /* config indisponible → valeurs par défaut */ }
+})();
 </script>
 </body>
 </html>

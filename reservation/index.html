@@ -417,10 +417,22 @@ async function initOnline(){
   try{
     const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
     sb = createClient(SUPABASE.url, SUPABASE.anonKey);
-    // Config réglée depuis l'app (ex : réservation à domicile)
+    // Profil public réglé depuis l'app (identité, prestations, domicile)
     try{
       const { data: cfg } = await sb.from("salon_config").select("data").eq("id","main").single();
-      if(cfg && cfg.data && cfg.data.home){ SALON.home = cfg.data.home; setupPlace(); }
+      const d = cfg && cfg.data;
+      if(d){
+        if(d.name) SALON.name = d.name;
+        if(d.tagline) SALON.tagline = d.tagline;
+        if(d.loc) SALON.loc = d.loc;
+        if(d.address) SALON.address = d.address;
+        if(d.whatsapp !== undefined) SALON.whatsapp = d.whatsapp;
+        if(d.instagram !== undefined) SALON.instagram = d.instagram;
+        if(d.hoursText) SALON.hoursText = d.hoursText;
+        if(d.home) SALON.home = d.home;
+        if(Array.isArray(d.services) && d.services.length) SALON.services = d.services;
+        applyIdentity(); renderServices(); setupPlace();
+      }
     }catch(e){ /* config indisponible → valeurs par défaut */ }
     await loadBusy();
     if(sel.date) buildSlots();   // rafraîchir si un jour est déjà choisi
@@ -438,25 +450,24 @@ function slotTaken(date, startMin, dur){
   return list.some(b => startMin < b.start + b.dur && b.start < startMin + dur);
 }
 
-// En-tête / identité
-$("#sign").textContent = SALON.name.toUpperCase();
-$("#tagline").textContent = SALON.tagline;
-$("#loc").textContent = SALON.loc.toUpperCase();
-$("#ringText").textContent = `${SALON.name.toUpperCase()} • ${SALON.loc.toUpperCase()} • `;
-$("#hoursTxt").textContent = SALON.hoursText;
-$("#footAddr").textContent = SALON.address;
-{ const city = (SALON.loc||"").split(/[—·,-]/)[0].trim(); if($("#est")) $("#est").textContent = city ? ("Est. "+city) : "Réservation"; }
-if($("#sig")) $("#sig").textContent = SALON.name ? (SALON.name + " — Propulsé par Salon Pro") : "Propulsé par Salon Pro";
-document.title = "Réserver — " + SALON.name;
-if(!SALON.whatsapp) $("#cfgWarn").classList.remove("hidden");
-
-// Footer contacts
-(function(){
+// En-tête / identité — re-appliquable après lecture de la config en ligne
+function applyIdentity(){
+  $("#sign").textContent = SALON.name.toUpperCase();
+  $("#tagline").textContent = SALON.tagline;
+  $("#loc").textContent = SALON.loc.toUpperCase();
+  $("#ringText").textContent = `${SALON.name.toUpperCase()} • ${SALON.loc.toUpperCase()} • `;
+  $("#hoursTxt").textContent = SALON.hoursText;
+  $("#footAddr").textContent = SALON.address;
+  const city = (SALON.loc||"").split(/[—·,-]/)[0].trim(); if($("#est")) $("#est").textContent = city ? ("Est. "+city) : "Réservation";
+  if($("#sig")) $("#sig").textContent = SALON.name ? (SALON.name + " — Propulsé par Salon Pro") : "Propulsé par Salon Pro";
+  document.title = "Réserver — " + SALON.name;
+  $("#cfgWarn").classList.toggle("hidden", !!SALON.whatsapp);
   const p=[];
   if(SALON.whatsapp) p.push(`<a href="https://wa.me/${SALON.whatsapp}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3a9 9 0 0 0-7.7 13.6L3 21l4.5-1.2A9 9 0 1 0 12 3Z"/></svg>WhatsApp</a>`);
   if(SALON.instagram) p.push(`<a href="https://instagram.com/${SALON.instagram}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c2.7 0 3 0 4.1.1 1 .1 1.7.2 2.3.5.6.2 1.1.5 1.6 1 .5.5.8 1 1 1.6.2.6.4 1.3.5 2.3.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c-.1 1-.2 1.7-.5 2.3-.2.6-.5 1.1-1 1.6-.5.5-1 .8-1.6 1-.6.2-1.3.4-2.3.5-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-1-.1-1.7-.2-2.3-.5-.6-.2-1.1-.5-1.6-1-.5-.5-.8-1-1-1.6-.2-.6-.4-1.3-.5-2.3C2 15 2 14.7 2 12s0-3 .1-4.1c.1-1 .2-1.7.5-2.3.2-.6.5-1.1 1-1.6.5-.5 1-.8 1.6-1 .6-.2 1.3-.4 2.3-.5C9 2 9.3 2 12 2Zm0 5.1a4.9 4.9 0 1 0 0 9.8 4.9 4.9 0 0 0 0-9.8Zm0 2a2.9 2.9 0 1 1 0 5.8 2.9 2.9 0 0 1 0-5.8Zm5.1-3.6a1.15 1.15 0 1 0 0 2.3 1.15 1.15 0 0 0 0-2.3Z"/></svg>@${SALON.instagram}</a>`);
   $("#footCt").innerHTML=p.join("");
-})();
+}
+applyIdentity();
 
 // Mon travail
 (function(){
@@ -484,23 +495,26 @@ if(!SALON.whatsapp) $("#cfgWarn").classList.remove("hidden");
   else { $("#igBtn").classList.add("hidden"); }
 })();
 
-// Prestations (menu + sélection)
-$("#svcMenu").innerHTML = SALON.services.map((s,i)=>`
-  <button class="svc" data-svc="${i}">
-    <span class="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></span>
-    <span class="nm"><b>${s.name}</b><small>${s.duration} min</small></span>
-    <span class="leader"></span>
-    <span class="pr">${money(s.price)}</span>
-  </button>`).join("");
-document.querySelectorAll("[data-svc]").forEach(b=>b.onclick=()=>{
-  sel.svc=SALON.services[+b.dataset.svc]; sel.date=null; sel.time=null;
-  document.querySelectorAll("[data-svc]").forEach(x=>x.classList.toggle("sel",x===b));
-  $("#needSvc").classList.add("hidden"); $("#booking").classList.remove("hidden");
-  $("#contact").classList.add("hidden");
-  buildDays(); $("#slotGrid").innerHTML=`<div class="needsvc" style="grid-column:1/-1">Choisissez un jour.</div>`;
-  update();
-  $("#book").scrollIntoView({behavior:"smooth",block:"start"});
-});
+// Prestations (menu + sélection) — re-rendu possible après lecture de la config
+function renderServices(){
+  $("#svcMenu").innerHTML = SALON.services.map((s,i)=>`
+    <button class="svc" data-svc="${i}">
+      <span class="pick"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5 10 17l9-10"/></svg></span>
+      <span class="nm"><b>${s.name}</b><small>${s.duration} min</small></span>
+      <span class="leader"></span>
+      <span class="pr">${money(s.price)}</span>
+    </button>`).join("");
+  document.querySelectorAll("[data-svc]").forEach(b=>b.onclick=()=>{
+    sel.svc=SALON.services[+b.dataset.svc]; sel.date=null; sel.time=null;
+    document.querySelectorAll("[data-svc]").forEach(x=>x.classList.toggle("sel",x===b));
+    $("#needSvc").classList.add("hidden"); $("#booking").classList.remove("hidden");
+    $("#contact").classList.add("hidden");
+    buildDays(); $("#slotGrid").innerHTML=`<div class="needsvc" style="grid-column:1/-1">Choisissez un jour.</div>`;
+    update();
+    $("#book").scrollIntoView({behavior:"smooth",block:"start"});
+  });
+}
+renderServices();
 
 function buildDays(){
   const now=new Date(); const chips=[]; let n=0;
