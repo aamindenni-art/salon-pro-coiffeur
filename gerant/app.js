@@ -3,7 +3,7 @@
    App 100% hors-ligne (localStorage). Séparée de l'app coiffeur.
    =========================================================== */
 "use strict";
-const APP_VERSION = "v2";
+const APP_VERSION = "v3";
 const KEY = "salon_gerant";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
@@ -39,7 +39,7 @@ function load(){
   catch(e){}
   return seedDemo();
 }
-function save(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){} }
+function save(){ try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){} syncSoon(); }
 
 function seedDemo(){
   const db = BASE();
@@ -839,6 +839,21 @@ function viewReglages(){
       <button class="btn primary block mt2" onclick="saveSalon()">Enregistrer</button>
     </div>
 
+    <div class="section-lbl">☁️ Synchro cloud (multi-appareils)</div>
+    <div class="card">
+      ${syncOn() ? `
+        <div class="flexb"><span>État</span><b class="gold" id="syncStatus">${esc(syncStatusText())}</b></div>
+        <div class="muted mt" style="font-size:12.5px">Code salon : <b>${esc(getSync().code)}</b>. Installe l'app sur un autre appareil, active la synchro avec le <b>même code + code secret</b>, et les données se partagent.</div>
+        <button class="btn block mt" onclick="syncNow()">🔄 Synchroniser maintenant</button>
+        <button class="btn bad block mt" onclick="syncDisable()">Désactiver la synchro</button>
+      ` : `
+        <div class="muted" style="font-size:13px">Partage les mêmes données (ventes, ardoises, stock…) entre ton téléphone et une tablette. Choisis un <b>code</b> et un <b>code secret</b> ; sur le 2ᵉ appareil, mets exactement les mêmes.</div>
+        <label class="f"><span class="cap">Code du salon</span><input class="inp" id="sy_code" placeholder="ex : barber-bkd" value="${esc((getSync().code)||"")}"></label>
+        <label class="f"><span class="cap">Code secret (à garder privé)</span><input class="inp" id="sy_secret" placeholder="un mot de passe à toi" value=""></label>
+        <button class="btn primary block mt2" id="sy_go" onclick="syncActivate()">Activer la synchro</button>
+      `}
+    </div>
+
     <div class="section-lbl">Données</div>
     <div class="card">
       <button class="btn block" onclick="exportData()">⬇️ Exporter mes données (sauvegarde)</button>
@@ -904,6 +919,120 @@ function updateFab(r){
 }
 function paintBrand(){ $("#brandName").textContent=DB.salon.name||"Salon Gérant"; $("#brandSub").textContent=DB.salon.tagline||"Gestion du salon"; }
 
+/* ========================================================================
+   SYNCHRO CLOUD (Supabase) — multi-appareils
+   Les identifiants (code + code secret) restent sur l'appareil (clé séparée),
+   ils ne font PAS partie des données synchronisées.
+   ======================================================================== */
+const SYNC_KEY = "salon_gerant_sync";
+let _sb = null, _syncBusy = false, _pushT = null, _dirty = false, _pullTimer = null;
+
+function getSync(){ try { return JSON.parse(localStorage.getItem(SYNC_KEY)) || {}; } catch(e){ return {}; } }
+function setSync(o){ try { localStorage.setItem(SYNC_KEY, JSON.stringify(o)); } catch(e){} }
+function syncOn(){ const s=getSync(); return !!(s.on && s.code && s.secret && CFG.supabaseUrl && CFG.supabaseAnonKey); }
+
+async function sbClient(){
+  if (_sb) return _sb;
+  const { createClient } = await import("https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm");
+  _sb = createClient(CFG.supabaseUrl, CFG.supabaseAnonKey, { auth:{ persistSession:false } });
+  return _sb;
+}
+
+async function syncPull(){
+  if (!syncOn() || _syncBusy || _dirty) return;
+  const s = getSync();
+  _syncBusy = true;
+  try {
+    const c = await sbClient();
+    const { data, error } = await c.rpc("gerant_pull", { p_id:s.code, p_secret:s.secret });
+    if (error) throw error;
+    if (data && data.data){
+      if (data.updated_at !== s.lastTs){            // changé sur le cloud → on applique
+        DB = Object.assign(BASE(), data.data);
+        try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){}
+        s.lastTs = data.updated_at; setSync(s);
+        paintBrand(); render();
+      }
+    }
+  } catch(e){ /* silencieux (hors-ligne / mauvais secret géré ailleurs) */ }
+  _syncBusy = false;
+  paintSyncBadge();
+}
+
+async function syncPush(){
+  if (!syncOn()) return;
+  const s = getSync();
+  const c = await sbClient();
+  const { data, error } = await c.rpc("gerant_push", { p_id:s.code, p_secret:s.secret, p_data: DB });
+  if (error) throw error;
+  s.lastTs = data; setSync(s); _dirty = false;
+  paintSyncBadge();
+}
+
+function syncSoon(){
+  if (!syncOn()) return;
+  _dirty = true; paintSyncBadge();
+  clearTimeout(_pushT);
+  _pushT = setTimeout(() => { syncPush().catch(()=>{}); }, 1200);
+}
+
+function startSyncLoop(){
+  clearInterval(_pullTimer);
+  if (!syncOn()) return;
+  _pullTimer = setInterval(syncPull, 15000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) syncPull(); });
+}
+
+// Activation / première connexion
+window.syncActivate = async () => {
+  const code = ($("#sy_code").value||"").trim().toLowerCase().replace(/\s+/g,"-");
+  const secret = ($("#sy_secret").value||"").trim();
+  if (!code || !secret){ toast("Remplis le code et le code secret"); return; }
+  const btn = $("#sy_go"); if (btn){ btn.disabled=true; btn.textContent="Connexion…"; }
+  try {
+    const c = await sbClient();
+    const { data, error } = await c.rpc("gerant_pull", { p_id:code, p_secret:secret });
+    if (error){ // secret erroné pour un code existant
+      toast("Code secret refusé pour ce code"); if(btn){btn.disabled=false;btn.textContent="Activer la synchro";} return;
+    }
+    const s = { on:true, code, secret, lastTs:null };
+    if (data && data.data){
+      if (!confirm("Des données existent déjà en ligne pour ce code.\nCharger ces données sur cet appareil ? (les données locales actuelles seront remplacées)")){
+        // garder le local et l'envoyer comme référence
+        setSync(s); await syncPush();
+      } else {
+        DB = Object.assign(BASE(), data.data);
+        try { localStorage.setItem(KEY, JSON.stringify(DB)); } catch(e){}
+        s.lastTs = data.updated_at; setSync(s);
+      }
+    } else {
+      // premier appareil : on crée en ligne avec les données locales
+      setSync(s); await syncPush();
+    }
+    _dirty = false; startSyncLoop(); paintBrand(); toast("Synchro activée ✓"); render();
+  } catch(e){
+    toast("Échec : vérifie ta connexion"); if(btn){btn.disabled=false;btn.textContent="Activer la synchro";}
+  }
+};
+window.syncDisable = () => {
+  if (!confirm("Désactiver la synchro sur cet appareil ? (les données en ligne ne sont pas effacées)")) return;
+  setSync({ on:false }); clearInterval(_pullTimer); clearTimeout(_pushT); _dirty=false; toast("Synchro désactivée"); render();
+};
+window.syncNow = async () => {
+  if (!syncOn()){ toast("Synchro non activée"); return; }
+  toast("Synchro…");
+  try { if (_dirty) await syncPush(); _dirty=false; await syncPull(); toast("À jour ✓"); }
+  catch(e){ toast("Échec de la synchro"); }
+};
+function syncStatusText(){
+  const s = getSync();
+  if (!syncOn()) return "Désactivée";
+  if (_dirty) return "Modifs à envoyer…";
+  if (s.lastTs){ const d=new Date(s.lastTs); return "À jour · "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0"); }
+  return "Activée";
+}
+function paintSyncBadge(){ const el=$("#syncStatus"); if(el) el.textContent = syncStatusText(); }
+
 /* ---------- service worker ---------- */
 function registerSW(){
   if(!("serviceWorker" in navigator)) return;
@@ -918,3 +1047,4 @@ $("#btnTop").onclick=()=>go("reglages");
 if(!location.hash) location.hash="#dash";
 render();
 registerSW();
+if (syncOn()){ startSyncLoop(); syncPull(); }
