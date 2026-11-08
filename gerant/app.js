@@ -3,7 +3,7 @@
    App 100% hors-ligne (localStorage). Séparée de l'app coiffeur.
    =========================================================== */
 "use strict";
-const APP_VERSION = "v4";
+const APP_VERSION = "v5";
 const KEY = "salon_gerant";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
@@ -119,14 +119,14 @@ function render(){
   const r = currentRoute();
   const views = { dash:viewDash, caisse:viewCaisse, agenda:viewAgenda, employes:viewEmployes,
                   more:viewMore, clients:viewClients, stock:viewStock, finances:viewFinances, reglages:viewReglages,
-                  ventes:viewVentes };
+                  ventes:viewVentes, stats:viewStats, planning:viewPlanning };
   const v = views[r] || viewDash;
   const app = $("#app");
   app.innerHTML = v();
   window.scrollTo(0,0);
   // nav active
   $$(".nav a").forEach(a=>{
-    const base = ["clients","stock","finances","reglages","ventes"].includes(r) ? "more" : r;
+    const base = ["clients","stock","finances","reglages","ventes","stats","planning"].includes(r) ? "more" : r;
     a.classList.toggle("on", a.dataset.r===base);
   });
   updateFab(r);
@@ -455,6 +455,15 @@ window.openEmp = (id) => {
       <label class="f"><span class="cap">Objectif CA (/mois)</span><input class="inp" id="e_goal" type="number" inputmode="numeric" value="${e?e.goal||0:0}"></label>
       <label class="f"><span class="cap">Prime si atteint</span><input class="inp" id="e_prime" type="number" inputmode="numeric" value="${e?e.prime||0:0}"></label>
     </div>
+    <div class="section-lbl" style="margin-bottom:6px">Planning</div>
+    <div class="f2">
+      <label class="f"><span class="cap">Arrivée</span><input class="inp" id="e_hs" type="time" value="${e?e.hStart||'09:00':'09:00'}"></label>
+      <label class="f"><span class="cap">Départ</span><input class="inp" id="e_he" type="time" value="${e?e.hEnd||'19:00':'19:00'}"></label>
+    </div>
+    <span class="cap" style="display:block;margin:12px 0 6px">Jours de repos</span>
+    <div class="chips" id="offDaysChips" style="flex-wrap:wrap">
+      ${["Lun","Mar","Mer","Jeu","Ven","Sam","Dim"].map((lbl,idx)=>{ const wd=(idx+1)%7; const on=(e&&(e.offDays||[]).includes(wd)); return `<span class="chip ${on?'on':''}" data-wd="${wd}" onclick="this.classList.toggle('on')">${lbl}</span>`; }).join("")}
+    </div>
     <label class="f" style="display:flex;align-items:center;justify-content:space-between"><span class="cap" style="margin:0">Actif</span>
       <input type="checkbox" id="e_act" ${!e||e.active?"checked":""} style="width:22px;height:22px"></label>
     ${e?`<div class="section-lbl">Ce mois-ci</div>${empStats(e)}
@@ -491,9 +500,12 @@ window.addLeave = (id) => {
 };
 window.delLeave = (id) => { const l=DB.leaves.find(x=>x.id===id); DB.leaves=DB.leaves.filter(x=>x.id!==id); save(); if(l)$("#leaveBox").innerHTML=leaveList(l.employeId); };
 window.saveEmp = (id) => {
+  const offDays = $$("#offDaysChips .chip.on").map(c=>Number(c.dataset.wd));
   const o={ name:$("#e_name").value.trim(), phone:$("#e_phone").value.trim(), role:$("#e_role").value.trim()||"Coiffeur",
             commission:Number($("#e_com").value)||0, salary:Number($("#e_sal").value)||0,
-            goal:Number($("#e_goal").value)||0, prime:Number($("#e_prime").value)||0, active:$("#e_act").checked };
+            goal:Number($("#e_goal").value)||0, prime:Number($("#e_prime").value)||0,
+            hStart:$("#e_hs").value||"09:00", hEnd:$("#e_he").value||"19:00", offDays,
+            active:$("#e_act").checked };
   if(!o.name){ toast("Nom requis"); return; }
   if(id){ Object.assign(emp(id),o); } else { DB.employes.push(Object.assign({id:uid(),c2:DB.employes.length%2===1},o)); }
   save(); closeSheet(); toast("Enregistré"); render();
@@ -505,6 +517,8 @@ window.delEmp = (id) => { if(!confirm("Supprimer cet employé ?"))return; DB.emp
    ======================================================================== */
 function viewMore(){
   const items=[
+    ["stats","📊","Statistiques","Graphiques, tendances, top"],
+    ["planning","📆","Planning","Qui travaille quel jour"],
     ["ventes","🧾","Journal des ventes","Revoir / annuler une vente"],
     ["clients","👤","Clients","Fichier, fidélité & ardoises"],
     ["stock","📦","Stock & produits","Inventaire, fournisseurs, achats"],
@@ -518,6 +532,88 @@ function viewMore(){
       ${items.map(([r,i,t,s])=>`<div class="row clk" onclick="go('${r}')"><div class="av" style="background:var(--card2);color:var(--gold2)">${i}</div>
         <div class="main"><div class="t">${t}</div><div class="s">${s}</div></div><div class="end muted">›</div></div>`).join("")}
     </div>
+  </section>`;
+}
+
+/* ========================================================================
+   STATISTIQUES (graphiques)
+   ======================================================================== */
+function last7(){ const a=[]; for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); a.push(isoOf(d)); } return a; }
+function viewStats(){
+  const days = last7();
+  const caByDay = days.map(d => ({ iso:d, label:frDay(d), value: DB.sales.filter(s=>s.date===d).reduce((a,s)=>a+s.total,0) }));
+  const maxDay = Math.max(1, ...caByDay.map(x=>x.value));
+  const totalWeek = caByDay.reduce((a,x)=>a+x.value,0);
+  const r = range("mois"); const sM = salesIn(r);
+  const aggSvc = {}, aggProd = {};
+  sM.forEach(s=>s.items.forEach(i=>{ const bag = i.kind==="service"?aggSvc:aggProd; bag[i.name]=(bag[i.name]||0)+i.price*i.qty; }));
+  const topSvc = Object.entries(aggSvc).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topProd = Object.entries(aggProd).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxSvc = Math.max(1, ...topSvc.map(x=>x[1]));
+  const maxProd = Math.max(1, ...topProd.map(x=>x[1]));
+  const pay = { espece:0, carte:0, credit:0 };
+  sM.forEach(s=>{ const k=s.payment||"espece"; pay[k]=(pay[k]||0)+s.total; });
+  const payTot = pay.espece+pay.carte+pay.credit;
+  return `<section class="page">
+    <div class="page-h"><div><div class="h">Statistiques</div><div class="d">7 derniers jours · ${range("mois").label.toLowerCase()}</div></div></div>
+
+    <div class="section-lbl">Recette — 7 derniers jours (${num(totalWeek)} ${CUR})</div>
+    <div class="card">
+      <div style="display:flex;align-items:flex-end;gap:6px;height:140px">
+        ${caByDay.map(x=>{ const pct=x.value/maxDay*100; const isT=x.iso===todayISO();
+          return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0">
+            <div class="muted" style="font-size:10px;margin-bottom:4px">${x.value?num(x.value):""}</div>
+            <div title="${esc(x.label)} : ${esc(money(x.value))}" style="width:74%;height:${x.value?Math.max(pct,5):0}%;background:var(--gold-metal);border-radius:5px 5px 0 0;${isT?'box-shadow:0 0 0 2px var(--gold2)':''}"></div>
+            <div class="${isT?'gold':'muted'}" style="font-size:10px;margin-top:6px">${esc(x.label)}</div>
+          </div>`; }).join("")}
+      </div>
+    </div>
+
+    <div class="section-lbl">Top prestations (ce mois)</div>
+    <div class="card">
+      ${topSvc.length ? topSvc.map(([name,v])=>`<div class="flexb" style="font-size:13px;margin-top:6px"><span>${esc(name)}</span><b class="gold">${money(v)}</b></div><div class="bar"><i style="width:${Math.max(v/maxSvc*100,3)}%"></i></div>`).join("") : `<div class="muted">Aucune vente.</div>`}
+    </div>
+
+    <div class="section-lbl">Top produits (ce mois)</div>
+    <div class="card">
+      ${topProd.length ? topProd.map(([name,v])=>`<div class="flexb" style="font-size:13px;margin-top:6px"><span>${esc(name)}</span><b class="gold">${money(v)}</b></div><div class="bar"><i style="width:${Math.max(v/maxProd*100,3)}%"></i></div>`).join("") : `<div class="muted">Aucun produit vendu.</div>`}
+    </div>
+
+    <div class="section-lbl">Moyens de paiement (ce mois)</div>
+    <div class="card">
+      ${payTot ? [["💵 Espèces",pay.espece,"var(--ok)"],["💳 Carte",pay.carte,"var(--info)"],["📒 Crédit",pay.credit,"var(--warn)"]].map(([lbl,v,col])=>`
+        <div class="flexb" style="font-size:13px;margin-top:6px"><span>${lbl}</span><b>${money(v)} · ${payTot?Math.round(v/payTot*100):0}%</b></div>
+        <div class="bar"><i style="width:${payTot?v/payTot*100:0}%;background:${col}"></i></div>`).join("") : `<div class="muted">Aucune vente.</div>`}
+    </div>
+  </section>`;
+}
+
+/* ========================================================================
+   PLANNING DES COIFFEURS
+   ======================================================================== */
+const WDAY = ["Dimanche","Lundi","Mardi","Mercredi","Jeudi","Vendredi","Samedi"];
+const WD3 = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"];
+let PLAN_DATE = todayISO();
+function empOff(e, wd){ return (e.offDays||[]).includes(wd); }
+function viewPlanning(){
+  const wd = new Date(PLAN_DATE+"T12:00").getDay();
+  const days=[]; const base=new Date(); const mondayOff=(base.getDay()+6)%7;
+  for(let i=0;i<7;i++){ const d=new Date(base); d.setDate(base.getDate()-mondayOff+i); days.push(isoOf(d)); }
+  const working = DB.employes.filter(e=>e.active && !empOff(e,wd));
+  const resting = DB.employes.filter(e=>e.active && empOff(e,wd));
+  return `<section class="page">
+    <div class="page-h"><div><div class="h">Planning</div><div class="d">${WDAY[wd]} ${frDate(PLAN_DATE)}</div></div></div>
+    <div class="chips">
+      ${days.map(iso=>{ const w=new Date(iso+"T12:00").getDay(); return `<span class="chip ${iso===PLAN_DATE?"on":""}" onclick="PLAN_DATE='${iso}';render()">${WD3[w]} ${iso.slice(8)}</span>`; }).join("")}
+    </div>
+    <div class="section-lbl">Présents (${working.length})</div>
+    <div class="card">
+      ${working.length ? working.map(e=>`<div class="row clk" onclick="openEmp('${e.id}')"><div class="av ${e.c2?'c2':''}">${esc(initials(e.name))}</div>
+        <div class="main"><div class="t">${esc(e.name)}</div><div class="s">${esc(e.role||"Coiffeur")}</div></div>
+        <div class="end"><div class="t gold">${esc(e.hStart||"09:00")} – ${esc(e.hEnd||"19:00")}</div></div></div>`).join("") : `<div class="empty"><div class="ic">😴</div>Personne de prévu ce jour.</div>`}
+    </div>
+    ${resting.length ? `<div class="section-lbl">Repos</div><div class="card">${resting.map(e=>`<div class="row clk" onclick="openEmp('${e.id}')"><div class="av" style="background:var(--card2);color:var(--mut)">${esc(initials(e.name))}</div><div class="main"><div class="t">${esc(e.name)}</div></div><div class="end"><span class="badge b-mut">Repos</span></div></div>`).join("")}</div>`:""}
+    <div class="muted center mt" style="font-size:12px">Règle les jours de repos et horaires dans chaque fiche (onglet Équipe).</div>
   </section>`;
 }
 
