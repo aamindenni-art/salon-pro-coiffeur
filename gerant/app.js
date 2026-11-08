@@ -3,7 +3,7 @@
    App 100% hors-ligne (localStorage). Séparée de l'app coiffeur.
    =========================================================== */
 "use strict";
-const APP_VERSION = "v3";
+const APP_VERSION = "v4";
 const KEY = "salon_gerant";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
@@ -22,6 +22,7 @@ const frDate = iso => { if(!iso) return ""; const [y,m,dd]=iso.split("-"); retur
 const frDay  = iso => { const d=new Date(iso+"T12:00"); return ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"][d.getDay()]; };
 const initials = n => (n||"?").trim().split(/\s+/).map(x=>x[0]).slice(0,2).join("").toUpperCase();
 const phoneDigits = p => (p||"").replace(/\D/g,"").slice(-9);
+const telIntl = p => { let d=(p||"").replace(/\D/g,""); if(d.startsWith("213")) return d; if(d.startsWith("0")) d=d.slice(1); return "213"+d; };
 
 /* ---------- state ---------- */
 function BASE(){
@@ -217,11 +218,12 @@ function rdvRow(x){
 /* ========================================================================
    CAISSE (point de vente)
    ======================================================================== */
-function newTicket(){ return { employeId: (DB.employes[0]||{}).id || "", clientId:"", items:[] }; }
+function newTicket(){ return { employeId: (DB.employes[0]||{}).id || "", clientId:"", items:[], discount:0 }; }
+function netOf(t){ const g=t.items.reduce((a,i)=>a+i.price*i.qty,0); const d=Math.min(t.discount||0,g); return { gross:g, disc:d, net:g-d }; }
 function viewCaisse(){
   if (!TICKET) TICKET = newTicket();
   const t = TICKET;
-  const total = t.items.reduce((a,i)=>a+i.price*i.qty,0);
+  const { gross, disc, net:total } = netOf(t);
   const active = DB.employes.filter(e=>e.active);
   return `
   <section class="page">
@@ -260,7 +262,10 @@ function viewCaisse(){
             <span class="t gold" style="min-width:66px;text-align:right">${num(i.price*i.qty)}</span>
           </div>
         </div>`).join("") : `<div class="empty"><div class="ic">🧾</div>Touche une prestation ou un produit ci-dessus.</div>`}
-      ${t.items.length ? `<div class="hr"></div><div class="pill-sum"><span class="section-lbl" style="margin:0">Total</span><span class="big-num">${num(total)} ${CUR}</span></div>` : ""}
+      ${t.items.length ? `<div class="hr"></div>
+        ${disc>0?`<div class="pill-sum"><span>Sous-total</span><b>${money(gross)}</b></div><div class="pill-sum"><span style="color:var(--bad)">Remise</span><b style="color:var(--bad)">− ${num(disc)}</b></div>`:""}
+        <div class="pill-sum"><span class="section-lbl" style="margin:0">Total</span><span class="big-num">${num(total)} ${CUR}</span></div>
+        <button class="btn sm ghost block mt" onclick="ticketDiscount()">${disc>0?"✏️ Modifier la remise":"➖ Ajouter une remise"}</button>` : ""}
     </div>
 
     ${t.items.length ? `<button class="btn primary block mt" onclick="ticketPay()">Encaisser ${money(total)}</button>
@@ -279,11 +284,22 @@ window.ticketAdd = (kind,id) => {
 };
 window.ticketQty = (idx,d) => { const it=TICKET.items[idx]; if(!it)return; it.qty+=d; if(it.qty<=0)TICKET.items.splice(idx,1); render(); };
 window.ticketReset = () => { TICKET=newTicket(); render(); };
+window.ticketDiscount = () => {
+  const g = netOf(TICKET).gross;
+  const v = prompt("Remise — montant en "+CUR+", ou en % (ex : 10%). Vide = aucune.", TICKET.discount?String(TICKET.discount):"");
+  if (v==null) return;
+  const str=(""+v).trim(); let d=0;
+  if (str==="") d=0;
+  else if (str.endsWith("%")) d=Math.round(g*(parseFloat(str)||0)/100);
+  else d=Math.round(parseFloat(str)||0);
+  TICKET.discount = Math.max(0, Math.min(d, g));
+  render();
+};
 window.ticketPay = () => {
   const t = TICKET;
   if (!t.items.length) return;
   if (!t.employeId){ toast("Choisis un coiffeur"); return; }
-  const total = t.items.reduce((a,i)=>a+i.price*i.qty,0);
+  const total = netOf(t).net;
   sheet(`
     <div class="sheet-h"><h3>Encaisser ${money(total)}</h3><button class="icbtn" onclick="closeSheet()">✕</button></div>
     <div class="section-lbl">Moyen de paiement</div>
@@ -297,14 +313,14 @@ window.ticketPay = () => {
 };
 window.finalizeSale = (payment) => {
   const t = TICKET;
-  const total = t.items.reduce((a,i)=>a+i.price*i.qty,0);
+  const { net:total, disc } = netOf(t);
   if (payment==="credit" && !t.clientId){ toast("Choisis un client pour le crédit"); closeSheet(); return; }
   // décrémenter le stock produits
   t.items.filter(i=>i.kind==="product").forEach(i=>{ const p=prod(i.refId); if(p) p.qty=Math.max(0,p.qty-i.qty); });
   // points de fidélité + visite (+ ardoise si crédit)
   if (t.clientId){ const c=cli(t.clientId); if(c){ c.points=(c.points||0)+Math.round(total/100); c.visits=(c.visits||0)+1; if(payment==="credit") c.debt=(c.debt||0)+total; } }
   DB.sales.push({ id:uid(), date:todayISO(), time:nowHM(), employeId:t.employeId, clientId:t.clientId,
-                  items:JSON.parse(JSON.stringify(t.items)), total, payment });
+                  items:JSON.parse(JSON.stringify(t.items)), total, discount:disc, payment });
   save(); TICKET=newTicket(); closeSheet(); toast("Encaissé ✓ "+money(total)); render();
 };
 const payLabel = p => ({espece:["💵","Espèces","b-ok"],carte:["💳","Carte","b-info"],credit:["📒","Crédit","b-warn"]}[p||"espece"]||["💵","Espèces","b-ok"]);
@@ -408,6 +424,10 @@ function viewEmployes(){
           <span class="muted">Commission : <b class="gold">${money(com)}</b></span>
           <button class="btn sm ${present?'bad':'primary'}" onclick="togglePointage('${e.id}')">${present?'⏹ Pointer sortie':'▶ Pointer entrée'}</button>
         </div>
+        ${e.goal>0?`<div style="padding:0 14px 12px">
+          <div class="flexb" style="font-size:12px"><span class="muted">🎯 Objectif ${money(e.goal)}</span>
+            <span class="${ca>=e.goal?'gold':'muted'}">${Math.min(100,Math.round(ca/e.goal*100))}%${ca>=e.goal&&e.prime>0?' · prime '+money(e.prime)+' 🎉':''}</span></div>
+          <div class="bar mt"><i style="width:${Math.min(100,ca/e.goal*100)}%"></i></div></div>`:""}
       </div>`;
     }).join("") : `<div class="empty"><div class="ic">✂️</div>Aucun employé. Ajoute ton équipe.</div>`}
   </section>`;
@@ -431,6 +451,10 @@ window.openEmp = (id) => {
       <label class="f"><span class="cap">Commission %</span><input class="inp" id="e_com" type="number" inputmode="numeric" value="${e?e.commission:30}"></label>
       <label class="f"><span class="cap">Salaire fixe (/mois)</span><input class="inp" id="e_sal" type="number" inputmode="numeric" value="${e?e.salary:0}"></label>
     </div>
+    <div class="f2">
+      <label class="f"><span class="cap">Objectif CA (/mois)</span><input class="inp" id="e_goal" type="number" inputmode="numeric" value="${e?e.goal||0:0}"></label>
+      <label class="f"><span class="cap">Prime si atteint</span><input class="inp" id="e_prime" type="number" inputmode="numeric" value="${e?e.prime||0:0}"></label>
+    </div>
     <label class="f" style="display:flex;align-items:center;justify-content:space-between"><span class="cap" style="margin:0">Actif</span>
       <input type="checkbox" id="e_act" ${!e||e.active?"checked":""} style="width:22px;height:22px"></label>
     ${e?`<div class="section-lbl">Ce mois-ci</div>${empStats(e)}
@@ -443,13 +467,14 @@ window.openEmp = (id) => {
 function empStats(e){
   const r=range("mois"); const sA=salesIn(r).filter(s=>s.employeId===e.id);
   const ca=sA.reduce((a,s)=>a+s.total,0); const com=sA.reduce((a,s)=>a+commissionOfSale(s,e.id),0);
-  const paie=(e.salary||0)+com;
+  const prime=(e.goal>0 && ca>=e.goal)?(e.prime||0):0;
+  const paie=(e.salary||0)+com+prime;
   return `<div class="grid g3">
     <div class="stat"><div class="lbl">Ventes</div><div class="val sm">${sA.length}</div></div>
     <div class="stat"><div class="lbl">CA généré</div><div class="val sm">${num(ca)}</div></div>
     <div class="stat gold"><div class="lbl">À payer</div><div class="val sm">${num(paie)}</div></div>
   </div>
-  <div class="muted mt" style="font-size:12.5px">Salaire ${money(e.salary||0)} + commission ${money(com)} = <b class="gold">${money(paie)}</b></div>`;
+  <div class="muted mt" style="font-size:12.5px">Salaire ${money(e.salary||0)} + commission ${money(com)}${prime?" + prime "+money(prime)+" 🎉":""} = <b class="gold">${money(paie)}</b></div>`;
 }
 function leaveList(id){
   const ls=DB.leaves.filter(l=>l.employeId===id).sort((a,b)=>b.from.localeCompare(a.from));
@@ -467,7 +492,8 @@ window.addLeave = (id) => {
 window.delLeave = (id) => { const l=DB.leaves.find(x=>x.id===id); DB.leaves=DB.leaves.filter(x=>x.id!==id); save(); if(l)$("#leaveBox").innerHTML=leaveList(l.employeId); };
 window.saveEmp = (id) => {
   const o={ name:$("#e_name").value.trim(), phone:$("#e_phone").value.trim(), role:$("#e_role").value.trim()||"Coiffeur",
-            commission:Number($("#e_com").value)||0, salary:Number($("#e_sal").value)||0, active:$("#e_act").checked };
+            commission:Number($("#e_com").value)||0, salary:Number($("#e_sal").value)||0,
+            goal:Number($("#e_goal").value)||0, prime:Number($("#e_prime").value)||0, active:$("#e_act").checked };
   if(!o.name){ toast("Nom requis"); return; }
   if(id){ Object.assign(emp(id),o); } else { DB.employes.push(Object.assign({id:uid(),c2:DB.employes.length%2===1},o)); }
   save(); closeSheet(); toast("Enregistré"); render();
@@ -527,8 +553,24 @@ window.saleDetail = (id) => {
   sheet(`<div class="sheet-h"><h3>Vente · ${esc(s.time)}</h3><button class="icbtn" onclick="closeSheet()">✕</button></div>
     <div class="muted" style="font-size:13px">${frDate(s.date)} · ${esc(empName(s.employeId))} · ${s.clientId?esc(cliName(s.clientId)):"Passage"} · <span class="badge ${pl[2]}">${pl[0]} ${pl[1]}</span></div>
     <div class="card mt">${s.items.map(i=>`<div class="row"><div class="main"><div class="t">${esc(i.name)}</div><div class="s">${money(i.price)} × ${i.qty}</div></div><div class="end t gold">${money(i.price*i.qty)}</div></div>`).join("")}
+      ${s.discount>0?`<div class="hr"></div><div class="pill-sum"><span style="color:var(--bad)">Remise</span><b style="color:var(--bad)">− ${num(s.discount)}</b></div>`:""}
       <div class="hr"></div><div class="pill-sum"><span class="section-lbl" style="margin:0">Total</span><span class="big-num">${num(s.total)} ${CUR}</span></div></div>
-    <button class="btn bad block mt2" onclick="cancelSale('${s.id}')">↩️ Annuler / rembourser cette vente</button>`);
+    <div class="btn-row mt2">
+      <button class="btn" onclick="window.print()">🖨️ Imprimer</button>
+      ${(s.clientId && (cli(s.clientId)||{}).phone)?`<button class="btn primary" onclick="sendReceipt('${s.id}')">📤 Ticket au client</button>`:""}
+    </div>
+    <button class="btn bad block mt" onclick="cancelSale('${s.id}')">↩️ Annuler / rembourser cette vente</button>`);
+};
+window.sendReceipt = (id) => {
+  const s = DB.sales.find(x=>x.id===id); if(!s) return;
+  const c = cli(s.clientId); if(!c || !c.phone){ toast("Pas de numéro client"); return; }
+  const lines = [ "🧾 "+DB.salon.name, frDate(s.date)+" · "+s.time ];
+  s.items.forEach(i=>lines.push(`• ${i.name} ×${i.qty} : ${money(i.price*i.qty)}`));
+  if (s.discount>0) lines.push("Remise : − "+num(s.discount)+" "+CUR);
+  lines.push("Total : "+money(s.total)+" ("+payLabel(s.payment)[1]+")");
+  if (c.points) lines.push("Fidélité : "+c.points+" points");
+  lines.push("Merci de votre visite 🙏");
+  window.open("https://wa.me/"+telIntl(c.phone)+"?text="+encodeURIComponent(lines.join("\n")), "_blank", "noopener");
 };
 window.cancelSale = (id) => {
   const s = DB.sales.find(x=>x.id===id); if(!s) return;
@@ -757,7 +799,8 @@ function viewFinances(){
   const exp=expIn(r); const dep=exp.reduce((a,x)=>a+x.amount,0);
   const com=sA.reduce((a,s)=>a+commissionOfSale(s),0);
   const sal=FIN_PERIOD==="mois"?DB.employes.filter(e=>e.active).reduce((a,e)=>a+(e.salary||0),0):0;
-  const charges=dep+com+sal;
+  const primes=FIN_PERIOD==="mois"?DB.employes.filter(e=>e.active).reduce((a,e)=>{ const eca=sA.filter(s=>s.employeId===e.id).reduce((x,s)=>x+s.total,0); return a+((e.goal>0&&eca>=e.goal)?(e.prime||0):0); },0):0;
+  const charges=dep+com+sal+primes;
   const benef=rec-charges;
   // ventilation par coiffeur
   const byEmp={}; sA.forEach(s=>byEmp[s.employeId]=(byEmp[s.employeId]||0)+s.total);
@@ -783,7 +826,8 @@ function viewFinances(){
     <div class="card">
       <div class="pill-sum"><span>🧾 Dépenses</span><b>${money(dep)}</b></div>
       <div class="pill-sum"><span>✂️ Commissions coiffeurs</span><b>${money(com)}</b></div>
-      ${FIN_PERIOD==="mois"?`<div class="pill-sum"><span>💵 Salaires fixes</span><b>${money(sal)}</b></div>`:`<div class="muted" style="font-size:12px">Les salaires fixes s'affichent sur la vue « Mois ».</div>`}
+      ${FIN_PERIOD==="mois"?`<div class="pill-sum"><span>💵 Salaires fixes</span><b>${money(sal)}</b></div>
+        ${primes>0?`<div class="pill-sum"><span>🎉 Primes objectifs</span><b>${money(primes)}</b></div>`:""}`:`<div class="muted" style="font-size:12px">Salaires fixes et primes s'affichent sur la vue « Mois ».</div>`}
     </div>
 
     <div class="section-lbl">Répartition recettes</div>

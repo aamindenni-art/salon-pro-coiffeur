@@ -1,5 +1,5 @@
 /* Salon Gérant — service worker (hors-ligne + mise à jour auto) */
-const CACHE = "salon-gerant-v3";
+const CACHE = "salon-gerant-v4";
 const ASSETS = [
   "./","./index.html","./styles.css","./config.js","./app.js","./manifest.webmanifest",
   "./icons/icon-192.png","./icons/icon-512.png","./icons/icon-180.png","./icons/icon-maskable-512.png",
