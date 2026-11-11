@@ -1,13 +1,13 @@
 {
   "name": "Salon Gérant",
   "short_name": "Gérant",
-  "description": "Gestion complète du salon : employés, clients, stock, caisse & finances",
+  "description": "Gestion complète du salon : équipe, caisse, agenda, clients, stock, finances",
+  "lang": "fr",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#0e0e10",
-  "theme_color": "#0e0e10",
+  "background_color": "#0a0a0c",
+  "theme_color": "#0a0a0c",
   "icons": [
     { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
     { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
