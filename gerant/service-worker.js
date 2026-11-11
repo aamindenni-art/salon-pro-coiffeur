@@ -1,10 +1,10 @@
 /* Salon Gérant — service worker
    Cache versionné et atomique : l'app démarre instantanément depuis le cache (même hors-ligne) ;
    une nouvelle version est téléchargée en entier en arrière-plan puis activée d'un coup. */
-const CACHE = "salon-gerant-v6";
+const CACHE = "salon-gerant-v7";
 const FONTS = "salon-gerant-fonts";
 const ASSETS = [
-  "./", "./index.html", "./styles.css", "./config.js", "./manifest.webmanifest",
+  "./", "./index.html", "./styles.css", "./config.js", "./manifest.webmanifest", "./img/barbershop.jpg",
   "./js/lib.js", "./js/core.js", "./js/sync.js", "./js/auth.js",
   "./js/views-caisse.js", "./js/views-agenda.js", "./js/views-equipe.js", "./js/views-gestion.js",
   "./js/views-rapports.js", "./js/views-admin.js", "./js/views-start.js",

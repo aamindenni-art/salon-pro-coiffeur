@@ -302,7 +302,7 @@ body:has(.paybar) .toasts{bottom:calc(var(--tab) + var(--sab) + 92px)}
 .upd{position:fixed;top:calc(10px + var(--sat));left:50%;transform:translateX(-50%);z-index:96;display:flex;align-items:center;gap:12px;padding:9px 10px 9px 16px;border-radius:14px;background:#26262d;border:1px solid var(--gold);box-shadow:var(--shadow);font-size:13.5px;font-weight:600;white-space:nowrap}
 
 /* ---------- Écran de verrouillage / accueil ---------- */
-.lock{position:fixed;inset:0;z-index:90;background:radial-gradient(900px 500px at 50% -10%,rgba(214,178,94,.16),transparent 60%),var(--bg);display:flex;flex-direction:column;align-items:center;padding:calc(24px + var(--sat)) 22px calc(24px + var(--sab));overflow-y:auto}
+.lock{position:fixed;inset:0;z-index:90;background:linear-gradient(180deg,rgba(10,10,12,.80),rgba(10,10,12,.68) 42%,rgba(10,10,12,.93)),radial-gradient(900px 500px at 50% -10%,rgba(214,178,94,.18),transparent 60%),url("./img/barbershop.jpg") center/cover no-repeat,var(--bg);display:flex;flex-direction:column;align-items:center;padding:calc(24px + var(--sat)) 22px calc(24px + var(--sab));overflow-y:auto}
 .lock-in{width:100%;max-width:380px;text-align:center;margin:auto 0}
 .lock .emblem{width:62px;height:62px;border-radius:19px;font-size:27px;margin:0 auto 14px}
 .lock h2{font-size:23px;font-weight:800;letter-spacing:-.025em}

@@ -4,7 +4,7 @@
    =========================================================== */
 "use strict";
 
-const APP_VERSION = "v6";
+const APP_VERSION = "v7";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
 const KEY = "salon_gerant", SYNC_KEY = "salon_gerant_sync", BASE_KEY = "salon_gerant_base";
