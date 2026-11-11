@@ -29,7 +29,7 @@ function dashGerant(){
   const rdvJ = DB.rdv.filter(r => r.date === t && r.status !== "annule").sort((a, b) => a.time.localeCompare(b.time));
   const todo = rdvJ.filter(r => r.status !== "fait").length;
   if (!DB.employes.length)
-    return pageH(greeting(), longDate(t)) + `<div class="card glow">${emptyBox("users", "Constituez votre équipe", "Ajoutez vos coiffeurs pour suivre leurs ventes, commissions et présences.")}
+    return heroH(greeting(), longDate(t)) + `<div class="card glow">${emptyBox("users", "Constituez votre équipe", "Ajoutez vos coiffeurs pour suivre leurs ventes, commissions et présences.")}
       <div class="btn-row"><button class="btn" onclick="empForm()">${ic("plus", 18)}Ajouter un coiffeur</button></div></div>`;
 
   const team = activeEmps().map(e => {
@@ -43,7 +43,7 @@ function dashGerant(){
   const alerts = (low.length ? `<button class="row" onclick="go('stock')"><div class="av icn warnc">${ic("box", 18)}</div><div class="grow"><div class="t">${low.length} produit${low.length > 1 ? "s" : ""} à réapprovisionner</div><div class="s trunc">${esc(low.slice(0, 3).map(p => p.name).join(", "))}</div></div>${ic("chevR", 16)}</button>` : "") +
     (debtors.length ? `<button class="row" onclick="go('clients')"><div class="av icn warnc">${ic("book", 18)}</div><div class="grow"><div class="t">Ardoises clients : ${money(debt)}</div><div class="s">${debtors.length} client${debtors.length > 1 ? "s" : ""} doivent de l'argent</div></div>${ic("chevR", 16)}</button>` : "");
 
-  return pageH(greeting(), longDate(t), `<button class="btn sm" onclick="go('caisse')">${ic("cash", 16)}Nouvelle vente</button>`) +
+  return heroH(greeting(), longDate(t), `<button class="btn sm" onclick="go('caisse')">${ic("cash", 16)}Nouvelle vente</button>`) +
     `<div class="grid g4">
       ${statBox("cash", "Chiffre du jour", mv(caJ), sj.length + " vente" + (sj.length > 1 ? "s" : ""), "hero")}
       ${statBox("calendar", "RDV du jour", String(rdvJ.length), todo + " à venir")}
@@ -69,7 +69,7 @@ function dashEmp(){
   const goal = N(e.goal), pct = goal > 0 ? Math.min(100, Math.round(caM / goal * 100)) : 0;
   const shift = openShift(e.id);
   const rdvJ = DB.rdv.filter(r => r.date === t && r.status !== "annule" && rdvAccess(r)).sort((a, b) => a.time.localeCompare(b.time));
-  return pageH(greeting() + " " + e.name, longDate(t), `<button class="btn sm" onclick="go('caisse')">${ic("cash", 16)}Nouvelle vente</button>`) +
+  return heroH(greeting() + " " + e.name, longDate(t), `<button class="btn sm" onclick="go('caisse')">${ic("cash", 16)}Nouvelle vente</button>`) +
     `<div class="grid g4">
       ${statBox("cash", "Mon chiffre du jour", mv(caJ), sj.length + " vente" + (sj.length > 1 ? "s" : ""), "hero")}
       ${statBox("award", "Ma commission du jour", mv(comJ), N(e.commission) + " % des prestations")}

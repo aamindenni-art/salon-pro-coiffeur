@@ -4,7 +4,7 @@
    =========================================================== */
 "use strict";
 
-const APP_VERSION = "v7";
+const APP_VERSION = "v8";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
 const KEY = "salon_gerant", SYNC_KEY = "salon_gerant_sync", BASE_KEY = "salon_gerant_base";
@@ -295,6 +295,8 @@ const ST_LBL = { attente: ["En attente", "warn"], confirme: ["Confirmé", "info"
 const stBadge = s => { const l = ST_LBL[s] || ST_LBL.attente; return `<span class="badge ${l[1]}">${l[0]}</span>`; };
 const emptyBox = (icon, title, text = "") => `<div class="empty">${ic(icon, 30)}<b>${esc(title)}</b>${esc(text)}</div>`;
 const pageH = (title, sub, acts = "") => `<div class="page-h"><div class="tt"><h1>${esc(title)}</h1>${sub ? `<p>${esc(sub)}</p>` : ""}</div>${acts ? `<div class="acts">${acts}</div>` : ""}</div>`;
+/* en-tête « vedette » avec photo d'ambiance — réservé à l'accueil */
+const heroH = (title, sub, acts = "") => `<div class="hero">${pageH(title, sub, acts)}</div>`;
 const sheetH = title => `<div class="sheet-h"><h3 class="trunc">${esc(title)}</h3><button class="icbtn" onclick="closeSheet()" aria-label="Fermer">${ic("x", 18)}</button></div>`;
 const opt = (v, label, cur) => `<option value="${esc(v)}"${String(v) === String(cur) ? " selected" : ""}>${esc(label)}</option>`;
 const val = id => { const el = document.getElementById(id); return el ? el.value.trim() : ""; };
