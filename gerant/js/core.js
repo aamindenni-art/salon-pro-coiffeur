@@ -4,7 +4,7 @@
    =========================================================== */
 "use strict";
 
-const APP_VERSION = "v10";
+const APP_VERSION = "v11";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
 const KEY = "salon_gerant", SYNC_KEY = "salon_gerant_sync", BASE_KEY = "salon_gerant_base";
@@ -326,7 +326,7 @@ const TABS_GERANT = ["dash", "caisse", "agenda", "employes", "more"];
 const route = () => location.hash.replace(/^#/, "").split("/")[0] || "dash";
 function go(r){ if (route() === r) render(); else location.hash = "#" + r; }
 
-let _lastRoute = null, _pendingRender = false, _sheetOpen = false;
+let _lastRoute = null, _lastHtml = "", _pendingRender = false, _sheetOpen = false;
 
 function render(){
   if (LOCK_MODE === "pin"){ _pendingRender = true; return; }   // création de code en cours : on ne touche à rien
@@ -344,6 +344,11 @@ function render(){
     html = `<div class="card">${emptyBox("alert", "Cette page n'a pas pu s'afficher", "Vos données sont intactes.")}
       <div class="btn-row"><button class="btn ghost" onclick="go('dash')">Retour à l'accueil</button><button class="btn" onclick="location.reload()">Recharger</button></div></div>`;
   }
+  // Si le contenu est identique à l'affichage courant (ex. synchro périodique, retour
+  // sur l'onglet), on ne recrée pas le DOM : ça évitait de recharger l'image du bandeau
+  // d'accueil à chaque re-rendu → plus de clignotement « l'image part et revient ».
+  if (r === _lastRoute && html === _lastHtml){ paintChrome(r); return; }
+  _lastHtml = html;
   app.innerHTML = html;
   app.classList.toggle("has-paybar", !!$(".paybar", app));
   if (r !== _lastRoute){
