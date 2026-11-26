@@ -13,7 +13,7 @@
   --gold-br:#caa34e; --on-accent:#1b1407;
   --logo-grad:linear-gradient(145deg,#d8b86a,#8c6a18);
   --gold-metal:linear-gradient(135deg,#e8cd84 0%,#caa34e 30%,#a87f2c 62%,#8c6a18 86%,#c9a24c 100%);
-  --vignette:rgba(40,30,10,.05); --bg-photo:.13;
+  --vignette:rgba(40,30,10,.05); --bg-photo:.20;
   --good:#2f7d4f; --good-soft:rgba(47,125,79,.13);
   --warn:#9c7619; --warn-soft:rgba(156,118,25,.14);
   --bad:#c0392b; --bad-soft:rgba(192,57,43,.12);
@@ -46,7 +46,7 @@
   --gold-br:#f0d290; --on-accent:#1b1407;
   --logo-grad:linear-gradient(145deg,#f0d290,#a07d2b);
   --gold-metal:linear-gradient(135deg,#f7e6b0 0%,#eacd84 26%,#d8b35e 52%,#b68f3a 80%,#f0d290 100%);
-  --vignette:rgba(0,0,0,.5); --bg-photo:.24;
+  --vignette:rgba(0,0,0,.5); --bg-photo:.36;
   --good:#5bbd84; --good-soft:rgba(91,189,132,.16);
   --warn:#e0ad4e; --warn-soft:rgba(224,173,78,.16);
   --bad:#e07a6b; --bad-soft:rgba(224,122,107,.16);
@@ -69,7 +69,7 @@
   --gold-br:#f0d290; --on-accent:#1b1407;
   --logo-grad:linear-gradient(145deg,#f0d290,#a07d2b);
   --gold-metal:linear-gradient(135deg,#f7e6b0 0%,#eacd84 26%,#d8b35e 52%,#b68f3a 80%,#f0d290 100%);
-  --vignette:rgba(0,0,0,.5); --bg-photo:.24;
+  --vignette:rgba(0,0,0,.5); --bg-photo:.36;
   --good:#5bbd84; --good-soft:rgba(91,189,132,.16);
   --warn:#e0ad4e; --warn-soft:rgba(224,173,78,.16);
   --bad:#e07a6b; --bad-soft:rgba(224,122,107,.16);
