@@ -470,7 +470,7 @@ a{color:var(--accent-ink)}
 
 /* ---------- Écran d'accueil animé (splash) ---------- */
 #splash{position:fixed;inset:0;z-index:200;display:grid;place-items:center;overflow:hidden;
-  background:radial-gradient(62% 60% at 50% 42%,#1d1810,#0b0a06 80%);
+  background:linear-gradient(180deg,rgba(11,10,6,.74),rgba(11,10,6,.88)),radial-gradient(62% 56% at 50% 42%,rgba(29,24,16,.35),rgba(11,10,6,.55) 80%),url("img/barbershop.jpg") center/cover no-repeat,#0b0a06;
   animation:sp-out .55s ease 1.5s forwards;pointer-events:none}
 #splash.gone{display:none}
 #splash::after{content:"";position:absolute;top:0;bottom:0;width:42%;left:-55%;pointer-events:none;
@@ -497,8 +497,8 @@ a{color:var(--accent-ink)}
 /* ---------- Fond : photo de coiffeur discrète + marbre doux ---------- */
 #bg{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 #bg::before{content:"";position:absolute;inset:0;
-  background:#0a0906 url("https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=1280&q=68&auto=format&fit=crop") center/cover;
-  opacity:var(--bg-photo);filter:grayscale(.32) contrast(1.04)}
+  background:#0a0906 url("img/barbershop.jpg") center/cover;
+  opacity:var(--bg-photo);filter:grayscale(.28) contrast(1.05)}
 #bg::after{content:"";position:absolute;inset:0;opacity:.6;
   background:radial-gradient(55% 45% at 16% 6%,var(--accent-soft),transparent 60%),radial-gradient(48% 42% at 90% 24%,rgba(216,179,94,.05),transparent 62%)}
 
