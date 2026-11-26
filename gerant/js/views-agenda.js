@@ -125,6 +125,7 @@ function rdvSheet(id){
       <div class="kv"><span>Prestation</span><b>${esc(r.serviceName || "—")}</b></div>
       <div class="kv"><span>Coiffeur</span><b>${esc(e ? e.name : "Non assigné")}</b></div>
       <div class="kv"><span>Téléphone</span><b>${r.clientPhone ? `<a class="link" href="tel:${esc(S(r.clientPhone).replace(/[^\d+]/g, ""))}">${esc(r.clientPhone)}</a>` : "—"}</b></div>
+      ${r.clientEmail ? `<div class="kv"><span>E-mail</span><b class="trunc" style="max-width:60%"><a class="link" href="mailto:${esc(r.clientEmail)}">${esc(r.clientEmail)}</a></b></div>` : ""}
       ${r.note ? `<div class="kv"><span>Note</span><b class="trunc" style="max-width:60%">${esc(r.note)}</b></div>` : ""}
     </div>
     ${acts.length ? `<div class="btn-row wrapb">${acts.join("")}</div>` : ""}

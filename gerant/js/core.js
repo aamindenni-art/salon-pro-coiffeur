@@ -4,7 +4,7 @@
    =========================================================== */
 "use strict";
 
-const APP_VERSION = "v11";
+const APP_VERSION = "v12";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const CUR = CFG.currency || "DA";
 const KEY = "salon_gerant", SYNC_KEY = "salon_gerant_sync", BASE_KEY = "salon_gerant_base";
@@ -99,6 +99,7 @@ function BASE(){
   return {
     v: 6,
     salon: { name: CFG.salonName || "Mon salon", tagline: CFG.tagline || "", loc: CFG.location || "", whatsapp: CFG.whatsapp || "",
+             hours: CFG.hours || "", mapsUrl: "",
              booking: false, pinHash: "", salt: "", rescueHash: "" },
     employes: [], clients: [], services: [], products: [], suppliers: [],
     rdv: [], sales: [], expenses: [], attendance: [], leaves: [], purchases: [], payments: [],
@@ -114,7 +115,7 @@ function normalize(d){
   if (!d || typeof d !== "object" || Array.isArray(d)) return b;
   const o = Object.assign({}, d);
   o.salon = Object.assign(b.salon, (d.salon && typeof d.salon === "object") ? d.salon : {});
-  ["name","tagline","loc","whatsapp","pinHash","salt","rescueHash"].forEach(k => { o.salon[k] = S(o.salon[k]); });
+  ["name","tagline","loc","whatsapp","hours","mapsUrl","pinHash","salt","rescueHash"].forEach(k => { o.salon[k] = S(o.salon[k]); });
   o.salon.booking = o.salon.booking === true;
   GLib.COLS.forEach(c => {
     const seen = new Set();

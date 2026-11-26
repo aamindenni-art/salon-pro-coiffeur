@@ -72,7 +72,7 @@ function svcIcon(name, category) {
 // Config des réservations en ligne. URL + clé publishable pré-remplies (sans danger,
 // comme sur la page publique). Le CODE SECRET reste privé : il n'est JAMAIS dans ce
 // fichier public — il se saisit une fois dans Réglages et vit sur le téléphone du coiffeur.
-const APP_VERSION = "v33";
+const APP_VERSION = "v34";
 const CFG = (typeof window !== "undefined" && window.APP_CONFIG) || {};
 const ONLINE_DEFAULT = { url: CFG.supabaseUrl || "", anonKey: CFG.supabaseAnonKey || "" };
 function onlineCfg() { const o = (typeof DB !== "undefined" && DB.salon && DB.salon.online) || {}; return { url: o.url || ONLINE_DEFAULT.url, anonKey: o.anonKey || ONLINE_DEFAULT.anonKey, secret: o.secret || "" }; }
@@ -482,7 +482,7 @@ function onHash() { const k = location.hash.slice(1); route = VIEWS[k] ? k : "da
 
 function renderChrome() {
   const dark = isDark();
-  $("#brand").textContent = DB.salon.name || "Salon Pro";
+  $("#brand").textContent = DB.salon.name || "Coiffeur City";
   const lg = $("#logo"); lg.classList.add("has-mark"); lg.innerHTML = brandMark("logo-mark");
   $("#btnTheme").innerHTML = svg(dark ? "sun" : "moon");
   const bl = $("#btnLock"); if (bl) bl.hidden = !DB.salon.pin;
@@ -1223,7 +1223,7 @@ function viewSettings(c) {
     <div id="installCard"></div>
     <div style="text-align:center;margin:18px 0 4px">
       <button class="btn sm" id="forceUpd">${svg("download")}Mettre à jour l'application</button>
-      <div style="color:var(--faint);font-size:12px;margin-top:10px">Salon Pro · ${APP_VERSION} · 100% sur votre téléphone</div>
+      <div style="color:var(--faint);font-size:12px;margin-top:10px">Coiffeur City · ${APP_VERSION} · 100% sur votre téléphone</div>
     </div>`;
 
   $("#saveSalon").onclick = () => {
@@ -1303,7 +1303,7 @@ function startOnboarding() {
     if (step === 0) {
       root.innerHTML = `<div class="onb"><div class="onb-inner">
         ${brandMark("onb-emblem")}
-        <h1>Bienvenue sur Salon Pro</h1>
+        <h1>Bienvenue sur Coiffeur City</h1>
         <p class="lead">L'application pour gérer votre salon : clients, rendez-vous, caisse, finances et rappels — même sans internet, tout reste sur votre téléphone.</p>
         <div class="onb-dots"><i class="on"></i><i></i></div>
         <button class="btn primary lg block" id="start">Commencer</button></div></div>`;
@@ -1373,7 +1373,7 @@ function showLock() {
   const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9, "", 0, "back"];
   $("#lock-root").innerHTML = `<div class="lock"><div class="lock-inner">
     <div class="lock-logo has-mark">${brandMark()}</div>
-    <h2>${esc(DB.salon.name || "Salon Pro")}</h2>
+    <h2>${esc(DB.salon.name || "Coiffeur City")}</h2>
     <p>Entrez votre code</p>
     <div class="dots" id="pdots"><i></i><i></i><i></i><i></i></div>
     <div class="keypad">${keys.map((k) => k === "" ? "<span></span>" : k === "back"

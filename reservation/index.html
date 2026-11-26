@@ -351,7 +351,7 @@ h2{font-family:var(--sign);font-size:32px;letter-spacing:1.5px;text-align:center
   <footer class="foot">
     <div class="ct" id="footCt"></div>
     <div id="footAddr"></div>
-    <div class="sig" id="sig">Propulsé par Salon Pro</div>
+    <div class="sig" id="sig">Propulsé par Coiffeur City</div>
   </footer>
 
 </div>
@@ -459,7 +459,7 @@ function applyIdentity(){
   $("#hoursTxt").textContent = SALON.hoursText;
   $("#footAddr").textContent = SALON.address;
   const city = (SALON.loc||"").split(/[—·,-]/)[0].trim(); if($("#est")) $("#est").textContent = city ? ("Est. "+city) : "Réservation";
-  if($("#sig")) $("#sig").textContent = SALON.name ? (SALON.name + " — Propulsé par Salon Pro") : "Propulsé par Salon Pro";
+  if($("#sig")) $("#sig").textContent = SALON.name ? (SALON.name + " — Propulsé par Coiffeur City") : "Propulsé par Coiffeur City";
   document.title = "Réserver — " + SALON.name;
   $("#cfgWarn").classList.toggle("hidden", !!SALON.whatsapp);
   const p=[];

@@ -1,6 +1,6 @@
 {
-  "name": "Salon Gérant",
-  "short_name": "Gérant",
+  "name": "Coiffeur City — Gérant",
+  "short_name": "Coiffeur City",
   "description": "Gestion complète du salon : équipe, caisse, agenda, clients, stock, finances",
   "lang": "fr",
   "start_url": "./",

@@ -120,7 +120,7 @@ function expPdf(){
     <h2>Détail des ventes</h2>
     ${x.sales.length ? `<table><tr><th>Date</th><th>Coiffeur</th><th>Articles</th><th>Paiement</th><th class="r">Net</th></tr>${x.sales.map(s => `<tr><td>${esc(frDate(s.date))} ${esc(s.time)}</td><td>${esc(saleEmpName(s))}</td><td>${esc(itemsTxt(s))}</td><td>${esc(PAY_LBL[s.payment][0])}</td><td class="r">${num(s.total)}</td></tr>`).join("")}<tr class="tot"><td colspan="4">Total</td><td class="r">${num(f.rec)}</td></tr></table>` : "<p>Aucune vente.</p>"}
     ${x.debtors.length ? `<h2>Ardoises clients à ce jour</h2><table><tr><th>Client</th><th>Téléphone</th><th class="r">Reste dû</th></tr>${x.debtors.map(c => `<tr><td>${esc(c.name)}</td><td>${esc(c.phone)}</td><td class="r">${num(c.debt)}</td></tr>`).join("")}</table>` : ""}
-    <div class="foot">Document généré par Salon Gérant — ${esc(DB.salon.name)}</div>`);
+    <div class="foot">Document généré par Coiffeur City — ${esc(DB.salon.name)}</div>`);
 }
 
 /* ============================= RÉGLAGES ============================= */
@@ -157,9 +157,12 @@ VIEWS.reglages = () => {
     `<div class="cols"><div>
       ${card("Mon salon", `<label class="f" style="margin-top:0"><span>Nom du salon</span><input class="inp" id="stN" value="${esc(s.name)}"></label>
         <label class="f"><span>Slogan</span><input class="inp" id="stT" value="${esc(s.tagline)}"></label>
-        <label class="f"><span>Adresse</span><input class="inp" id="stL" value="${esc(s.loc)}"></label>
+        <label class="f"><span>Adresse</span><input class="inp" id="stL" value="${esc(s.loc)}" placeholder="Rue, quartier, ville"></label>
+        <label class="f"><span>Lien Google Maps <span class="cap">(facultatif)</span></span><input class="inp" id="stMap" inputmode="url" value="${esc(s.mapsUrl)}" placeholder="https://maps.app.goo.gl/…"></label>
+        <label class="f"><span>Horaires d'ouverture</span><input class="inp" id="stHr" value="${esc(s.hours)}" placeholder="Sam–Jeu 9h–19h · Ven fermé"></label>
         <label class="f"><span>WhatsApp du salon</span><input class="inp" id="stW" inputmode="tel" value="${esc(s.whatsapp)}" placeholder="213…"></label>
-        <button class="btn block mt" onclick="saveSalon()">Enregistrer</button>`, "settings")}
+        <button class="btn block mt" onclick="saveSalon()">Enregistrer</button>
+        <div class="hint">L'adresse, les horaires et le lien Maps s'affichent sur votre page de réservation en ligne.</div>`, "settings")}
       ${card("Sécurité", secBody, "shield")}
       ${card("Réservation en ligne", bookBody, "globe")}
     </div><div>
@@ -175,7 +178,7 @@ VIEWS.reglages = () => {
 function saveSalon(){
   const name = val("stN");
   if (!name){ toast("Saisissez le nom du salon", "bad"); return; }
-  Object.assign(DB.salon, { name, tagline: val("stT"), loc: val("stL"), whatsapp: val("stW") });
+  Object.assign(DB.salon, { name, tagline: val("stT"), loc: val("stL"), whatsapp: val("stW"), hours: val("stHr"), mapsUrl: val("stMap") });
   save(); render(); toast("Informations enregistrées");
 }
 function bookingToggle(on){

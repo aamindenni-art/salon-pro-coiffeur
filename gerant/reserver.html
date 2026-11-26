@@ -25,6 +25,10 @@ button,input,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;
 .hd{text-align:center;margin-bottom:22px}
 .emb{width:58px;height:58px;border-radius:18px;margin:0 auto 12px;display:grid;place-items:center;font-weight:800;font-size:25px;color:var(--gold-ink);background:linear-gradient(145deg,var(--gold-2),var(--gold))}
 h1{font-size:23px;font-weight:800;letter-spacing:-.025em}.sub{color:var(--muted);font-size:14px;margin-top:3px}
+.meta{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:12px}
+.meta a,.meta span{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:999px;padding:8px 13px;text-decoration:none;max-width:100%}
+.meta a{color:var(--gold-2)}.meta a:active{transform:scale(.97)}
+.meta svg{width:15px;height:15px;flex:none}.meta b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:14px}
 .step{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15.5px;margin-bottom:12px}
 .step i{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-style:normal;font-size:13px;color:var(--gold-ink);background:var(--gold)}
@@ -116,9 +120,19 @@ function timesFor(d){
   return Array.from(set).sort((a, b) => a - b);
 }
 
+const SVG_PIN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>';
+const SVG_CLOCK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
 function head(){
   const s = INFO.salon;
-  return `<div class="hd"><div class="emb">${esc((s.name || "S").trim().charAt(0).toUpperCase())}</div><h1>${esc(s.name)}</h1><p class="sub">${esc(s.tagline || s.loc || "Réservez votre rendez-vous en ligne")}</p></div>`;
+  const addr = (s.loc || "").trim(), hours = (s.hours || "").trim();
+  const maps = (s.mapsUrl || "").trim() || (addr ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(addr) : "");
+  let meta = "";
+  if (addr) meta += `<a href="${esc(maps)}" target="_blank" rel="noopener" aria-label="Itinéraire">${SVG_PIN}<b>${esc(addr)}</b></a>`;
+  if (hours) meta += `<span>${SVG_CLOCK}<b>${esc(hours)}</b></span>`;
+  return `<div class="hd"><div class="emb">${esc((s.name || "S").trim().charAt(0).toUpperCase())}</div><h1>${esc(s.name)}</h1>`
+    + `<p class="sub">${esc(s.tagline || "Réservez votre rendez-vous en ligne")}</p>`
+    + (meta ? `<div class="meta">${meta}</div>` : "")
+    + `</div>`;
 }
 function drawMsg(title, text){ $("#root").innerHTML = `<div class="hd"><div class="emb">R</div></div><div class="card msg"><b>${esc(title)}</b>${esc(text)}</div>`; }
 
@@ -151,15 +165,16 @@ function draw(){
       <div class="sum"><span>${esc(svc.name)}${emp ? " · " + esc(emp.name) : ""}<br><small style="color:var(--muted)">${esc(longDate(SEL.date))} à ${esc(SEL.time)}</small></span><b>${money(svc.price)}</b></div>
       <label class="f"><span>Votre nom</span><input class="inp" id="fN" autocomplete="name" maxlength="60" value="${esc(store.get("rv_name"))}"></label>
       <label class="f"><span>Téléphone</span><input class="inp" id="fP" type="tel" inputmode="tel" autocomplete="tel" placeholder="05 50 12 34 56" maxlength="20" value="${esc(store.get("rv_phone"))}"></label>
+      <label class="f"><span>E-mail <span style="color:var(--faint)">(facultatif)</span></span><input class="inp" id="fE" type="email" inputmode="email" autocomplete="email" placeholder="vous@exemple.com" maxlength="80" value="${esc(store.get("rv_email"))}"></label>
       <label class="f"><span>Message (facultatif)</span><textarea class="inp" id="fM" maxlength="200"></textarea></label>
       <div class="err" id="err" hidden></div>
       <button class="btn" id="go">Envoyer ma demande</button>
       <p class="sub" style="text-align:center;margin-top:10px;font-size:12.5px">Le salon confirmera votre rendez-vous.</p></div>`;
   }
   h += `<p class="foot">Réservation en ligne</p>`;
-  const keep = { n: ($("#fN") || {}).value, p: ($("#fP") || {}).value, m: ($("#fM") || {}).value };
+  const keep = { n: ($("#fN") || {}).value, p: ($("#fP") || {}).value, e: ($("#fE") || {}).value, m: ($("#fM") || {}).value };
   $("#root").innerHTML = h;
-  if (keep.n != null && $("#fN")){ $("#fN").value = keep.n; $("#fP").value = keep.p; $("#fM").value = keep.m; }
+  if (keep.n != null && $("#fN")){ $("#fN").value = keep.n; $("#fP").value = keep.p; if ($("#fE")) $("#fE").value = keep.e; $("#fM").value = keep.m; }
 }
 
 function waBtn(text){
@@ -173,14 +188,17 @@ const ERR = {
   closed: "Les réservations en ligne sont fermées pour le moment.",
   bad_name: "Saisissez votre nom (2 caractères minimum).",
   bad_phone: "Numéro de téléphone invalide (ex : 0550 12 34 56).",
+  bad_email: "Adresse e-mail invalide (ex : vous@exemple.com).",
   too_many: "Trop de demandes en cours pour ce numéro. Contactez directement le salon.",
 };
 
 async function submit(){
   if (BUSY) return;
   const name = $("#fN").value.trim(), phone = $("#fP").value.replace(/[\s.\-()]/g, ""), note = $("#fM").value.trim();
+  const email = ($("#fE") ? $("#fE").value : "").trim();
   if (name.length < 2){ showErr(ERR.bad_name); return; }
   if (!/^\+?[0-9]{8,15}$/.test(phone)){ showErr(ERR.bad_phone); return; }
+  if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ showErr("Adresse e-mail invalide (ex : vous@exemple.com)."); return; }
   let empId = SEL.emp;
   if (empId === "any"){
     const dur = durOf(SEL.svc), t = hm(SEL.time);
@@ -190,8 +208,8 @@ async function submit(){
   }
   BUSY = true; const btn = $("#go"); btn.disabled = true; btn.textContent = "Envoi…";
   try {
-    await rpc("gerant_book", { p_id: CODE, p_name: name, p_phone: phone, p_date: SEL.date, p_time: SEL.time, p_emp: empId, p_svc: SEL.svc, p_note: note });
-    store.set("rv_name", name); store.set("rv_phone", phone);
+    await rpc("gerant_book", { p_id: CODE, p_name: name, p_phone: phone, p_date: SEL.date, p_time: SEL.time, p_emp: empId, p_svc: SEL.svc, p_note: note, p_email: email });
+    store.set("rv_name", name); store.set("rv_phone", phone); store.set("rv_email", email);
     done(name, empId);
   } catch (e){
     const c = e && e.code;

@@ -89,7 +89,7 @@ async function importBookings(){
     const id = cleanId(b && b.id);
     if (!id || ack.has(id)) return;
     if (!DB.rdv.some(r => r.id === id)){
-      DB.rdv.push({ id, clientId: "", clientName: S(b.name) || "Client", clientPhone: S(b.phone),
+      DB.rdv.push({ id, clientId: "", clientName: S(b.name) || "Client", clientPhone: S(b.phone), clientEmail: S(b.email),
         date: isISO(b.date) ? b.date : todayISO(), time: isHM(b.time) ? b.time : "10:00",
         employeId: cleanId(b.emp), serviceId: cleanId(b.svc), serviceName: S(b.svcName),
         status: "attente", note: S(b.note), source: "web", createdAt: S(b.at) });
