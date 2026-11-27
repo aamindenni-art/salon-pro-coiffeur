@@ -218,8 +218,49 @@ test("réservation publique : créneau déjà pris et validations", async ({ pag
 
 test("réservation publique : lien invalide ou salon fermé", async ({ page }) => {
   await page.goto("/gerant/reserver.html");
-  await expect(page.locator("#root")).toContainText("Lien incomplet");
+  await expect(page.locator("#hC")).toBeVisible();              // sans code : accueil du site (saisie du code)
   await page.route("**/rest/v1/rpc/gerant_public_info", r => r.fulfill({ status: 200, contentType: "application/json", body: "null" }));
   await page.goto("/gerant/reserver.html?s=ferme");
   await expect(page.locator("#root")).toContainText("indisponible");
+});
+
+/* ---------- site de réservation du gérant : /rdv/ ---------- */
+test("site /rdv/ : accueil, saisie du code du salon puis page du salon", async ({ page }) => {
+  await mockApi(page, info(), r => r.fulfill({ status: 200, contentType: "application/json", body: '"x"' }));
+  await page.goto("/rdv/");
+  await expect(page.locator("h1")).toContainText("Coiffeur City");
+  await page.locator("#hF button[type=submit]").click();
+  await expect(page.locator("#err")).toContainText("code");
+  await page.locator("#hC").fill("Mon Salon");
+  await page.locator("#hF button[type=submit]").click();
+  await expect(page).toHaveURL(/\/rdv\/\?s=mon-salon$/);
+  await expect(page.locator("h1")).toContainText("Salon Test");
+  await expect(page.locator("[data-svc=s1]")).toBeVisible();
+});
+
+test("site /rdv/ : démonstration complète sans aucun appel au cloud", async ({ page }) => {
+  let hits = 0;
+  await page.route("**/rest/v1/**", r => { hits++; r.abort(); });
+  await page.goto("/rdv/");
+  await page.locator("#hDemo").click();
+  await expect(page.locator(".demo")).toBeVisible();
+  await page.locator("[data-svc=d1]").click();
+  await page.locator("[data-emp=any]").click();
+  await page.locator("[data-date]:not(.dis)").nth(1).click();
+  await page.locator("[data-time]").first().click();
+  await page.locator("#fN").fill("Client Test");
+  await page.locator("#fP").fill("0550123456");
+  await page.locator("#go").click();
+  await expect(page.locator("#root")).toContainText("Demande envoyée");
+  await page.locator("#again").click();
+  await expect(page.locator("[data-svc=d1]")).toBeVisible();
+  expect(hits).toBe(0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test("réglages gérant : le lien de réservation pointe vers le site /rdv/", async ({ page }) => {
+  await demo(page);
+  await goto(page, "reglages");
+  expect(await page.evaluate(() => bookingLink())).toMatch(/\/rdv\/\?s=$/);
+  expect(await page.evaluate(() => bookingDemo())).toMatch(/\/rdv\/\?demo=1$/);
 });

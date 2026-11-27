@@ -125,7 +125,10 @@ function expPdf(){
 
 /* ============================= RÉGLAGES ============================= */
 function shareBooking(){ shareText("Réservez votre rendez-vous chez " + DB.salon.name + " : " + bookingLink(), "Réservation"); }
-const bookingLink = () => location.origin + location.pathname.replace(/[^/]*$/, "") + "reserver.html?s=" + encodeURIComponent(SS.code || "");
+/* site de réservation de l'appli gérant : …/rdv/ quand l'app est publiée dans /gerant/, sinon la page locale */
+const bookingBase = () => /\/gerant\/[^/]*$/.test(location.pathname) ? new URL("../rdv/", location.href).href : location.origin + location.pathname.replace(/[^/]*$/, "") + "reserver.html";
+const bookingLink = () => bookingBase() + "?s=" + encodeURIComponent(SS.code || "");
+const bookingDemo = () => bookingBase() + "?demo=1";
 
 VIEWS.reglages = () => {
   if (!isGerant()) return "";
@@ -144,7 +147,8 @@ VIEWS.reglages = () => {
        ${s.booking ? `<div class="lbl mt">Lien à partager avec vos clients</div><div class="code">${esc(bookingLink())}</div>
          <div class="btn-row wrapb"><button class="btn ghost sm" onclick="copyText(bookingLink())">${ic("copy", 15)}Copier</button><button class="btn ghost sm" onclick="shareBooking()">${ic("share", 15)}Partager</button><button class="btn ghost sm" onclick="window.open(bookingLink(),'_blank','noopener')">${ic("globe", 15)}Ouvrir</button></div>
          <div class="hint">${onlineEmps} coiffeur${onlineEmps > 1 ? "s" : ""} et ${onlineSvc} prestation${onlineSvc > 1 ? "s" : ""} proposés en ligne. Les demandes arrivent dans l'Agenda « en attente » pour que vous les confirmiez.</div>` : ""}`
-    : `<div class="note">${ic("cloud", 17)}<span>La réservation en ligne a besoin de la synchro cloud : activez-la d'abord ci-dessous.</span></div>`;
+    : `<div class="note">${ic("cloud", 17)}<span>La réservation en ligne a besoin de la synchro cloud : activez-la d'abord ci-dessous.</span></div>
+       <button class="btn ghost sm mt" onclick="window.open(bookingDemo(),'_blank','noopener')">${ic("globe", 15)}Voir un exemple de la page</button>`;
   const syncBody = on
     ? `<div class="flexb"><div><b>Salon « ${esc(SS.code)} »</b><div class="cap">${esc(v.l)}</div></div><span class="icbtn ${v.c}" style="pointer-events:none">${ic(v.i, 18)}</span></div>
        <div class="btn-row wrapb"><button class="btn ghost sm" onclick="syncCycle();toast('Synchronisation…','info')">${ic("refresh", 15)}Synchroniser</button><button class="btn danger sm" onclick="syncOff()">Désactiver</button></div>

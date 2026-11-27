@@ -57,6 +57,9 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.025em}.sub{color:var(--muted)
 .tick{width:68px;height:68px;border-radius:50%;margin:6px auto 16px;display:grid;place-items:center;background:var(--ok-soft);color:var(--ok)}
 .kv{display:flex;justify-content:space-between;gap:14px;padding:10px 0;border-top:1px solid var(--line);text-align:left}.kv:first-of-type{border-top:0}.kv span{color:var(--muted)}.kv b{text-align:right}
 .foot{text-align:center;color:var(--faint);font-size:12px;margin-top:26px}
+.demo{text-align:center;font-size:13px;font-weight:700;color:var(--gold-2);background:var(--gold-soft);border:1px solid rgba(214,178,94,.35);border-radius:13px;padding:10px 13px;margin-bottom:16px}
+.lnk{display:block;text-align:center;margin-top:16px;color:var(--gold-2);font-weight:700;font-size:14px;text-decoration:none}
+.hint{color:var(--faint);font-size:12.5px;margin-top:8px}
 .spin{width:30px;height:30px;border-radius:50%;border:3px solid var(--line-2);border-top-color:var(--gold);animation:r .8s linear infinite;margin:50px auto}@keyframes r{to{transform:rotate(1turn)}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
@@ -68,7 +71,10 @@ h1{font-size:23px;font-weight:800;letter-spacing:-.025em}.sub{color:var(--muted)
 "use strict";
 (function(){
 const CFG = window.APP_CONFIG || {};
-const CODE = (new URLSearchParams(location.search).get("s") || "").trim().toLowerCase();
+const QS = new URLSearchParams(location.search);
+const DEMO = QS.has("demo");
+const CODE = DEMO ? "" : (QS.get("s") || "").trim().toLowerCase();
+const BRAND = "Coiffeur City";
 const $ = s => document.querySelector(s);
 const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const WD = ["Dim","Lun","Mar","Mer","Jeu","Ven","Sam"], WDL = ["dimanche","lundi","mardi","mercredi","jeudi","vendredi","samedi"];
@@ -129,12 +135,50 @@ function head(){
   let meta = "";
   if (addr) meta += `<a href="${esc(maps)}" target="_blank" rel="noopener" aria-label="Itinéraire">${SVG_PIN}<b>${esc(addr)}</b></a>`;
   if (hours) meta += `<span>${SVG_CLOCK}<b>${esc(hours)}</b></span>`;
-  return `<div class="hd"><div class="emb">${esc((s.name || "S").trim().charAt(0).toUpperCase())}</div><h1>${esc(s.name)}</h1>`
+  return (DEMO ? `<div class="demo">Démonstration — aucune demande n'est réellement envoyée</div>` : "")
+    + `<div class="hd"><div class="emb">${esc((s.name || "S").trim().charAt(0).toUpperCase())}</div><h1>${esc(s.name)}</h1>`
     + `<p class="sub">${esc(s.tagline || "Réservez votre rendez-vous en ligne")}</p>`
     + (meta ? `<div class="meta">${meta}</div>` : "")
     + `</div>`;
 }
-function drawMsg(title, text){ $("#root").innerHTML = `<div class="hd"><div class="emb">R</div></div><div class="card msg"><b>${esc(title)}</b>${esc(text)}</div>`; }
+const HOME = location.pathname;
+function drawMsg(title, text, back){ $("#root").innerHTML = `<div class="hd"><div class="emb">C</div></div><div class="card msg"><b>${esc(title)}</b>${esc(text)}</div>`
+  + (back ? `<a class="lnk" href="${esc(HOME)}">Choisir un autre salon</a>` : "") + `<p class="foot">Réservation en ligne · ${BRAND}</p>`; }
+
+/* accueil du site (ouvert sans lien de salon) : saisir le code du salon ou voir la démonstration */
+function drawHome(){
+  document.title = "Réservation en ligne — " + BRAND;
+  $("#root").innerHTML = `<div class="hd"><div class="emb">C</div><h1>${BRAND}</h1><p class="sub">Réservez votre rendez-vous en ligne</p></div>
+    <form class="card" id="hF" novalidate><div class="step">Votre salon</div>
+      <label class="f" style="margin-top:0"><span>Code du salon</span><input class="inp" id="hC" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="40" placeholder="ex. mon-salon" value="${esc(store.get("rv_code"))}"></label>
+      <p class="hint">Le code se trouve dans le lien de réservation envoyé par votre salon.</p>
+      <div class="err" id="err" hidden></div>
+      <button class="btn" type="submit">Continuer</button></form>
+    <a class="btn ghost" id="hDemo" style="text-decoration:none" href="${esc(HOME)}?demo=1">Voir une démonstration</a>
+    <p class="foot">Réservation en ligne · ${BRAND}</p>`;
+  $("#hF").addEventListener("submit", ev => {
+    ev.preventDefault();
+    const c = $("#hC").value.trim().toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
+    if (c.length < 3){ showErr("Saisissez le code de votre salon (3 caractères minimum)."); return; }
+    location.href = HOME + "?s=" + encodeURIComponent(c);
+  });
+}
+
+/* salon d'exemple, entièrement local : rien n'est lu ni écrit dans le cloud */
+function demoInfo(){
+  const d = new Date(), z = new Date(d.getTime() - d.getTimezoneOffset() * 60000), today = z.toISOString().slice(0, 10);
+  const now = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+  const busy = [];
+  [0, 1, 2].forEach(i => { const day = addDays(today, i);
+    busy.push({ e: "a1", d: day, t: "10:00", s: "d2" }, { e: "a1", d: day, t: "15:30", s: "d1" }, { e: "a2", d: day, t: "11:00", s: "d1" }, { e: "a3", d: day, t: "14:00", s: "d5" }); });
+  return { today, now, leaves: [], busy,
+    salon: { name: BRAND, tagline: "Salon de démonstration", loc: "Rue Didouche Mourad, Alger", hours: "Sam–Jeu 9h–19h · Ven fermé", mapsUrl: "", whatsapp: "" },
+    services: [{ id: "d1", name: "Coupe homme", price: 500, duration: 30 }, { id: "d2", name: "Coupe + barbe", price: 800, duration: 60 },
+      { id: "d3", name: "Taille de barbe", price: 300, duration: 30 }, { id: "d4", name: "Coupe enfant", price: 400, duration: 30 }, { id: "d5", name: "Soin du visage", price: 1200, duration: 60 }],
+    employes: [{ id: "a1", name: "Samir", role: "Coiffeur", hStart: "09:00", hEnd: "19:00", offDays: [5] },
+      { id: "a2", name: "Yacine", role: "Barbier", hStart: "10:00", hEnd: "19:00", offDays: [5] },
+      { id: "a3", name: "Nabil", role: "Coiffeur", hStart: "09:00", hEnd: "17:00", offDays: [5, 6] }] };
+}
 
 function draw(){
   if (!INFO.services.length || !INFO.employes.length){ document.title = "Réserver — " + INFO.salon.name; $("#root").innerHTML = head() + `<div class="card msg"><b>Réservation indisponible</b>Ce salon ne propose pas encore de créneaux en ligne. Contactez-le directement.</div>${waBtn("Bonjour, je souhaite prendre rendez-vous.")}`; return; }
@@ -171,7 +215,7 @@ function draw(){
       <button class="btn" id="go">Envoyer ma demande</button>
       <p class="sub" style="text-align:center;margin-top:10px;font-size:12.5px">Le salon confirmera votre rendez-vous.</p></div>`;
   }
-  h += `<p class="foot">Réservation en ligne</p>`;
+  h += `<p class="foot">Réservation en ligne · ${BRAND}</p>`;
   const keep = { n: ($("#fN") || {}).value, p: ($("#fP") || {}).value, e: ($("#fE") || {}).value, m: ($("#fM") || {}).value };
   $("#root").innerHTML = h;
   if (keep.n != null && $("#fN")){ $("#fN").value = keep.n; $("#fP").value = keep.p; if ($("#fE")) $("#fE").value = keep.e; $("#fM").value = keep.m; }
@@ -208,6 +252,7 @@ async function submit(){
   }
   BUSY = true; const btn = $("#go"); btn.disabled = true; btn.textContent = "Envoi…";
   try {
+    if (DEMO){ await new Promise(r => setTimeout(r, 450)); INFO.busy.push({ e: empId, d: SEL.date, t: SEL.time, s: SEL.svc }); done(name, empId); return; }
     await rpc("gerant_book", { p_id: CODE, p_name: name, p_phone: phone, p_date: SEL.date, p_time: SEL.time, p_emp: empId, p_svc: SEL.svc, p_note: note, p_email: email });
     store.set("rv_name", name); store.set("rv_phone", phone); store.set("rv_email", email);
     done(name, empId);
@@ -234,13 +279,13 @@ function done(name, empId){
   const svc = svcOf(SEL.svc), emp = INFO.employes.find(e => e.id === empId);
   const text = `Bonjour, je viens de demander un rendez-vous : ${svc.name}, ${longDate(SEL.date)} à ${SEL.time}${emp ? " avec " + emp.name : ""}. Nom : ${name}.`;
   $("#root").innerHTML = head() + `<div class="card done"><div class="tick"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
-    <h1 style="font-size:21px">Demande envoyée</h1><p class="sub" style="margin-bottom:14px">Le salon va la confirmer très vite.</p>
+    <h1 style="font-size:21px">Demande envoyée</h1><p class="sub" style="margin-bottom:14px">${DEMO ? "Exemple : sur la vraie page, le salon reçoit la demande dans son agenda." : "Le salon va la confirmer très vite."}</p>
     <div class="kv"><span>Prestation</span><b>${esc(svc.name)}</b></div><div class="kv"><span>Date</span><b>${esc(longDate(SEL.date))}</b></div>
     <div class="kv"><span>Heure</span><b>${esc(SEL.time)}</b></div>${emp ? `<div class="kv"><span>Coiffeur</span><b>${esc(emp.name)}</b></div>` : ""}
     <div class="kv"><span>Prix</span><b>${money(svc.price)}</b></div>
-    ${waBtn(text)}<button class="btn ghost" id="again">Faire une autre réservation</button></div><p class="foot">Réservation en ligne</p>`;
+    ${waBtn(text)}<button class="btn ghost" id="again">Faire une autre réservation</button></div><p class="foot">Réservation en ligne · ${BRAND}</p>`;
   window.scrollTo(0, 0);
-  $("#again").onclick = async () => { SEL.svc = SEL.emp = SEL.date = SEL.time = ""; try { INFO = await rpc("gerant_public_info", { p_id: CODE }) || INFO; } catch (e) {} start(); };
+  $("#again").onclick = async () => { SEL.svc = SEL.emp = SEL.date = SEL.time = ""; if (!DEMO){ try { INFO = await rpc("gerant_public_info", { p_id: CODE }) || INFO; } catch (e) {} } start(); window.scrollTo(0, 0); };
 }
 
 document.addEventListener("click", ev => {
@@ -260,11 +305,13 @@ function start(){
   draw();
 }
 async function init(){
-  if (!CODE){ drawMsg("Lien incomplet", "Ce lien de réservation n'est pas valide. Demandez-le au salon."); return; }
+  if (DEMO){ INFO = demoInfo(); start(); return; }
+  if (!CODE){ drawHome(); return; }
   if (!CFG.supabaseUrl || !CFG.supabaseAnonKey){ drawMsg("Service indisponible", "La réservation en ligne n'est pas configurée."); return; }
   try { INFO = await rpc("gerant_public_info", { p_id: CODE }); }
   catch (e){ drawMsg("Pas de connexion", "Vérifiez votre connexion internet puis rechargez la page."); return; }
-  if (!INFO){ drawMsg("Réservation indisponible", "Ce salon n'accepte pas de réservation en ligne pour le moment."); return; }
+  if (!INFO){ drawMsg("Réservation indisponible", "Aucun salon n'accepte de réservation en ligne avec le code « " + CODE + " ». Vérifiez le lien envoyé par votre salon.", true); return; }
+  store.set("rv_code", CODE);
   INFO.services = INFO.services || []; INFO.employes = INFO.employes || []; INFO.leaves = INFO.leaves || []; INFO.busy = INFO.busy || [];
   start();
 }
